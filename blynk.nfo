@@ -445,10 +445,10 @@ unsigned long transitionTime = 0;
 uint8_t lastMessageData[8];
 
 void setup() {
-    //Blynk.begin(auth);
+	Blynk.begin(auth);
 	Serial.begin(115200);
 	carloop.begin();
-	//Particle.connect();
+	Particle.connect();
 	transitionTime = millis();
 }
 
@@ -581,12 +581,12 @@ void printValues() {
 
 void publishValuesAtInterval() {
     static const unsigned long interval2 = 600000; // 10 minutes
-	static unsigned long lastDisplay2 = 0;
+		static unsigned long lastDisplay2 = 0;
     if(millis() - lastDisplay2 < interval2) {
         return;
     }
     lastDisplay2 = millis();
-    //publishValues();
+	  // publishValues();
     blynkValues();
 }
 
