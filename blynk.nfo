@@ -19,7 +19,7 @@
 //#include "blynk/blynk.h"
 // include blynk/blynk.h using the ide add library function.
 
-SYSTEM_MODE(SEMI_AUTOMATIC);
+//SYSTEM_MODE(SEMI_AUTOMATIC);
 SYSTEM_THREAD(ENABLED);
 
 void sendObdRequest();
@@ -457,7 +457,8 @@ void setup() {
 void loop() {
 
 	carloop.update();
-	printValuesAtInterval();
+	// debugging only, causes lots of car warnings
+	//	printValuesAtInterval();
 	publishValuesAtInterval();
 	obdLoopFunction();
 	waitForObdResponse();
