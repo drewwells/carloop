@@ -1,6 +1,11 @@
 #define BLYNK_PRINT Serial // Defines the object that is used for printing
 //#define BLYNK_DEBUG        // Optional, this enables more detailed prints
 
+// required for ATT SIM
+// https://community.particle.io/t/how-to-setup-the-third-party-sim/22271
+#include "cellular_hal.h"
+STARTUP(cellular_credentials_set("broadband", "", "", NULL));
+
 // This #include statement was automatically added by the Particle IDE.
 #include <blynk.h>
 
@@ -13,14 +18,9 @@
  * This code will publish chosen obdii compliant messages to blynk for data visualization.
  */
 
-//#include "carloop.h"
-// include carloop.h using the ide add library function.
 #include "base85.h"
-// include base85.h by copy and pasting base85.h located in this repository into the web ide
-//#include "blynk/blynk.h"
-// include blynk/blynk.h using the ide add library function.
 
-SYSTEM_MODE(SEMI_AUTOMATIC);
+// SYSTEM_MODE(SEMI_AUTOMATIC);
 SYSTEM_THREAD(ENABLED);
 
 void sendObdRequest();
@@ -185,6 +185,11 @@ float AUXILLARY_IO_SUPPORTED;
 float MASS_AIR_FLOW_SENSOR;
 float ENGINE_COOLANT_TEMPERATURE;
 float INTAKE_AIR_TEMPERATURE_SENSOR;
+
+// Chevy (Volt) specific PIDs
+float CHARGER_AMPS_IN;
+float CHARGER_VOLTS_IN;
+
 
 ///////////////////////////////////////////////////////////////////////////
 //GLOBAL INTEGERS FOR USE IN PERFORMING MATH AND EXTRACTION OF OBDII DATA//
@@ -446,13 +451,12 @@ unsigned long transitionTime = 0;
 uint8_t lastMessageData[8];
 
 void setup() {
-	//Blynk.begin(auth, server);
 	Serial.begin(115200);
 	carloop.begin();
 	Particle.connect();
 	transitionTime = millis();
+	Blynk.begin(auth, server);
 }
-
 
 
 void loop() {
@@ -472,17 +476,31 @@ void updateChargerCurrent() {
 		return;
 	}
 	chargerTime = millis();
+	requestChargerVolt();
+	waitForExtendedResponse();
 	requestChargerCurrent();
-	waitForChargerCurrentResponse();
+	waitForExtendedResponse();
+}
+
+// !Charger AC Voltage	ChargerVoltsIn	224368
+void requestChargerVolt() {
+	CANMessage message;
+  // A CAN message to request the vehicle speed
+  message.id = 0x7E4;
+  message.len = 8;
+
+  // Data is an OBD request: get current value of the vehicle speed PID
+  message.data[0] = 0x03; // 2 byte request
+  message.data[1] = 0x22;
+	message.data[2] = 0x43;
+	message.data[3] = 0x68;
+  // Send the message on the bus!
+  carloop.can().transmit(message);
 }
 
 // !Charger AC Current	ChargerAmpsIn	224369
-// !Charger AC Voltage	ChargerVoltsIn	224368
 void requestChargerCurrent() {
-	BLYNK_LOG("Charger update request");
-
 	CANMessage message;
-
   // A CAN message to request the vehicle speed
   message.id = 0x7E4;
   message.len = 8;
@@ -496,19 +514,31 @@ void requestChargerCurrent() {
   carloop.can().transmit(message);
 }
 
-void waitForChargerCurrentResponse() {
-	BLYNK_LOG("Waiting for Charger Update");
+void waitForExtendedResponse() {
 	uint32_t start = millis();
   while (millis() - start < OBD_TIMEOUT_MS)
   {
     CANMessage message;
     if (carloop.can().receive(message))
     {
-      if (message.id >= OBD_CAN_REPLY_ID_MIN &&
-					message.id <= OBD_CAN_REPLY_ID_MAX &&
-          message.data[2] == 0x43 && message.data[3] == 0x69 )
-      {
-				BLYNK_LOG("Received charger update: %d\n", message.data[4]*.2);
+      if (message.id < OBD_CAN_REPLY_ID_MIN ||
+					message.id > OBD_CAN_REPLY_ID_MAX )	{
+					continue;
+				}
+			// Charger Volts in
+			if (message.data[2] == 0x43 && message.data[3] == 0x68 ) {
+				float voltIn;
+				voltIn = message.data[4];
+				CHARGER_VOLTS_IN = voltIn * 2;
+				BLYNK_LOG("Received volt update: %d\n", message.data[4], message.data[5]);
+        return;
+      }
+			// Charger AMP in
+			if (message.data[2] == 0x43 && message.data[3] == 0x69 ) {
+				float ampIn;
+				ampIn = message.data[4];
+				CHARGER_AMPS_IN = ampIn * 0.2;
+				BLYNK_LOG("Received amp update: %d\n", message.data[4], message.data[5]);
         return;
       }
     }
@@ -638,7 +668,7 @@ void printString(const char* fmt, String str) {
 
 void blynkValues() {
 	//TODO: ONLY SEND DATA WHEN THE ENGINE IS ON
-	//Blynk.run();
+	Blynk.run();
 	String StringMIL_STATUS                             = String(MIL_STATUS);
 	String StringFUEL_SYSTEM_STATUS                     = String(FUEL_SYSTEM_STATUS);
 	String StringENGINE_LOAD                            = String(ENGINE_LOAD);
@@ -683,6 +713,16 @@ void blynkValues() {
 	printString("  Hybrid: %s", StringHYBRID_BATTERY_PACK_REMAINING_LIFE);
 	printString("Mod Volt: %s", StringCONTROL_MODULE_VOLTAGE);
 	printString("Fuel LvL: %s", StringFUEL_TANK_LEVEL_INPUT);
+	printString(" Amps In: %s", String(CHARGER_AMPS_IN));
+	printString("Volts In: %s", String(CHARGER_VOLTS_IN));
+
+	Blynk.virtualWrite(V0, StringAMBIENT_AIR_TEMPERATURE);
+	Blynk.virtualWrite(V1, StringHYBRID_BATTERY_PACK_REMAINING_LIFE);
+	Blynk.virtualWrite(V2, StringCONTROL_MODULE_VOLTAGE);
+	Blynk.virtualWrite(V3, StringFUEL_TANK_LEVEL_INPUT);
+	Blynk.virtualWrite(V4, String(CHARGER_AMPS_IN));
+	Blynk.virtualWrite(V5, String(CHARGER_VOLTS_IN));
+
 	return;
 	Blynk.virtualWrite(V0, StringMIL_STATUS);
 	Blynk.virtualWrite(V1, StringFUEL_SYSTEM_STATUS);
