@@ -451,9 +451,9 @@ unsigned long transitionTime = 0;
 uint8_t lastMessageData[8];
 
 void setup() {
+	Particle.connect();
 	Serial.begin(115200);
 	carloop.begin();
-	Particle.connect();
 	transitionTime = millis();
 	Blynk.begin(auth, server);
 }
