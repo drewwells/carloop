@@ -37,7 +37,7 @@ void waitForChargerCurrentResponse();
 
 //PLACE YOUR BLYNK AUTHENTICATION KEY IN BELOW AS SHOWN IN EXAMPLE BELOW:
 //char auth[] = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
-
+char server[] = "45.55.96.146";
 
 String dumpMessage(const CANMessage &message);
 bool byteArray8Equal(uint8_t a1[8], uint8_t a2[8]);
@@ -189,7 +189,7 @@ float INTAKE_AIR_TEMPERATURE_SENSOR;
 // Chevy (Volt) specific PIDs
 float CHARGER_AMPS_IN;
 float CHARGER_VOLTS_IN;
-
+float EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE;
 
 ///////////////////////////////////////////////////////////////////////////
 //GLOBAL INTEGERS FOR USE IN PERFORMING MATH AND EXTRACTION OF OBDII DATA//
@@ -328,7 +328,7 @@ const auto OBD_PID_INTAKE_AIR_TEMPERATURE_SENSOR         = 0x68;
 //SUM THE TOTAL AMOUNT OF PIDS YOU WOULD LIKE TO REQUEST AND PLACE THAT IN const size_t NUM_PIDS_TO_REQUEST//
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-const size_t NUM_PIDS_TO_REQUEST = 102;
+const size_t NUM_PIDS_TO_REQUEST = 2;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //COMMENT OUT OR REMOVE THE PIDS THAT YOU DO NOT HAVE TO INCREASE EFFECIENCY BUT BE SURE TO UPDATE THE ABOVE CONSTANT//
@@ -336,108 +336,108 @@ const size_t NUM_PIDS_TO_REQUEST = 102;
 
 const uint8_t pidsToRequest[NUM_PIDS_TO_REQUEST] = {
 
-	OBD_PID_SUPPORTED_PIDS_01_20,
-	OBD_PID_MIL_STATUS,
-	OBD_PID_FUEL_SYSTEM_STATUS,
-	OBD_PID_ENGINE_LOAD,
-	OBD_PID_COOLANT_TEMPERATURE,
-	OBD_PID_SHORT_TERM_FUEL_TRIM_BANK_1,
-	OBD_PID_LONG_TERM_FUEL_TRIM_BANK_1,
-	OBD_PID_SHORT_TERM_FUEL_TRIM_BANK_2,
-	OBD_PID_LONG_TERM_FUEL_TRIM_BANK_2,
-	OBD_PID_FUEL_PRESSURE,
-	OBD_PID_INTAKE_MANIFOLD_PRESSURE,
-	OBD_PID_ENGINE_RPM,
-	OBD_PID_VEHICLE_SPEED,
-	OBD_PID_TIMING_ADVANCE,
-	OBD_PID_INTAKE_AIR_TEMPERATURE,
-	OBD_PID_MAF_AIR_FLOW_RATE,
-	OBD_PID_THROTTLE,
-	OBD_PID_COMMANDED_SECONDARY_AIR_STATUS,
-	OBD_PID_O2_SENSORS_PRESENT,
-	OBD_PID_O2_V_F_T_1,
-	OBD_PID_O2_V_F_T_2,
-	OBD_PID_O2_V_F_T_3,
-	OBD_PID_O2_V_F_T_4,
-	OBD_PID_O2_V_F_T_5,
-	OBD_PID_O2_V_F_T_6,
-	OBD_PID_O2_V_F_T_7,
-	OBD_PID_O2_V_F_T_8,
-	OBD_PID_OBD_STANDARDS,
-	OBD_PID_ENGINE_RUN_TIME,
-	OBD_PID_SUPPORTED_PIDS_21_40,
-	OBD_PID_DISTANCE_TRAVELED_WITH_MIL_ON,
-	OBD_PID_FUEL_RAIL_PRESSURE,
-	OBD_PID_FUEL_RAIL_GAUGE_PRESSURE,
-	OBD_PID_O2_F_A_E_R_V_1,
-	OBD_PID_O2_F_A_E_R_V_2,
-	OBD_PID_O2_F_A_E_R_V_3,
-	OBD_PID_O2_F_A_E_R_V_4,
-	OBD_PID_O2_F_A_E_R_V_5,
-	OBD_PID_O2_F_A_E_R_V_6,
-	OBD_PID_O2_F_A_E_R_V_7,
-	OBD_PID_O2_F_A_E_R_V_8,
-	OBD_PID_COMMANDED_EGR,
-	OBD_PID_EGR_ERROR,
-	OBD_PID_COMMANDED_EVAPORATIVE_PURGE,
+	/* OBD_PID_SUPPORTED_PIDS_01_20, */
+	/* OBD_PID_MIL_STATUS, */
+	/* OBD_PID_FUEL_SYSTEM_STATUS, */
+	/* OBD_PID_ENGINE_LOAD, */
+	/* OBD_PID_COOLANT_TEMPERATURE, */
+	/* OBD_PID_SHORT_TERM_FUEL_TRIM_BANK_1, */
+	/* OBD_PID_LONG_TERM_FUEL_TRIM_BANK_1, */
+	/* OBD_PID_SHORT_TERM_FUEL_TRIM_BANK_2, */
+	/* OBD_PID_LONG_TERM_FUEL_TRIM_BANK_2, */
+	/* OBD_PID_FUEL_PRESSURE, */
+	/* OBD_PID_INTAKE_MANIFOLD_PRESSURE, */
+	/* OBD_PID_ENGINE_RPM, */
+	/* OBD_PID_VEHICLE_SPEED, */
+	/* OBD_PID_TIMING_ADVANCE, */
+	/* OBD_PID_INTAKE_AIR_TEMPERATURE, */
+	/* OBD_PID_MAF_AIR_FLOW_RATE, */
+	/* OBD_PID_THROTTLE, */
+	/* OBD_PID_COMMANDED_SECONDARY_AIR_STATUS, */
+	/* OBD_PID_O2_SENSORS_PRESENT, */
+	/* OBD_PID_O2_V_F_T_1, */
+	/* OBD_PID_O2_V_F_T_2, */
+	/* OBD_PID_O2_V_F_T_3, */
+	/* OBD_PID_O2_V_F_T_4, */
+	/* OBD_PID_O2_V_F_T_5, */
+	/* OBD_PID_O2_V_F_T_6, */
+	/* OBD_PID_O2_V_F_T_7, */
+	/* OBD_PID_O2_V_F_T_8, */
+	/* OBD_PID_OBD_STANDARDS, */
+	/* OBD_PID_ENGINE_RUN_TIME, */
+	/* OBD_PID_SUPPORTED_PIDS_21_40, */
+	/* OBD_PID_DISTANCE_TRAVELED_WITH_MIL_ON, */
+	/* OBD_PID_FUEL_RAIL_PRESSURE, */
+	/* OBD_PID_FUEL_RAIL_GAUGE_PRESSURE, */
+	/* OBD_PID_O2_F_A_E_R_V_1, */
+	/* OBD_PID_O2_F_A_E_R_V_2, */
+	/* OBD_PID_O2_F_A_E_R_V_3, */
+	/* OBD_PID_O2_F_A_E_R_V_4, */
+	/* OBD_PID_O2_F_A_E_R_V_5, */
+	/* OBD_PID_O2_F_A_E_R_V_6, */
+	/* OBD_PID_O2_F_A_E_R_V_7, */
+	/* OBD_PID_O2_F_A_E_R_V_8, */
+	/* OBD_PID_COMMANDED_EGR, */
+	/* OBD_PID_EGR_ERROR, */
+	/* OBD_PID_COMMANDED_EVAPORATIVE_PURGE, */
 	OBD_PID_FUEL_TANK_LEVEL_INPUT,
-	OBD_PID_WARM_UPS_SINCE_CODES_CLEARED,
-	OBD_PID_DISTANCE_TRAVELED_SINCE_CODES_CLEARED,
-	OBD_PID_EVAPORATOR_SYSTEM_PRESSURE,
-	OBD_PID_ABSOLUTE_BAROMETRIC_PRESSURE,
-	OBD_PID_O2_F_A_E_R_1_C,
-	OBD_PID_O2_F_A_E_R_2_C,
-	OBD_PID_O2_F_A_E_R_3_C,
-	OBD_PID_O2_F_A_E_R_4_C,
-	OBD_PID_O2_F_A_E_R_5_C,
-	OBD_PID_O2_F_A_E_R_6_C,
-	OBD_PID_O2_F_A_E_R_7_C,
-	OBD_PID_O2_F_A_E_R_8_C,
-	OBD_PID_CATALYST_TEMPERATURE_BANK1_SENSOR1,
-	OBD_PID_CATALYST_TEMPERATURE_BANK2_SENSOR1,
-	OBD_PID_CATALYST_TEMPERATURE_BANK1_SENSOR2,
-	OBD_PID_CATALYST_TEMPERATURE_BANK2_SENSOR2,
-	OBD_PID_SUPPORTED_PIDS_41_60,
-	OBD_PID_MONITOR_STATUS,
-	OBD_PID_CONTROL_MODULE_VOLTAGE,
-	OBD_PID_ABSOLUTE_LOAD_VALUE,
-	OBD_PID_FUEL_AIR_COMMANDED_EQUIV_RATIO,
-	OBD_PID_RELATIVE_THROTTLE_POSITION,
+	/* OBD_PID_WARM_UPS_SINCE_CODES_CLEARED, */
+	/* OBD_PID_DISTANCE_TRAVELED_SINCE_CODES_CLEARED, */
+	/* OBD_PID_EVAPORATOR_SYSTEM_PRESSURE, */
+	/* OBD_PID_ABSOLUTE_BAROMETRIC_PRESSURE, */
+	/* OBD_PID_O2_F_A_E_R_1_C, */
+	/* OBD_PID_O2_F_A_E_R_2_C, */
+	/* OBD_PID_O2_F_A_E_R_3_C, */
+	/* OBD_PID_O2_F_A_E_R_4_C, */
+	/* OBD_PID_O2_F_A_E_R_5_C, */
+	/* OBD_PID_O2_F_A_E_R_6_C, */
+	/* OBD_PID_O2_F_A_E_R_7_C, */
+	/* OBD_PID_O2_F_A_E_R_8_C, */
+	/* OBD_PID_CATALYST_TEMPERATURE_BANK1_SENSOR1, */
+	/* OBD_PID_CATALYST_TEMPERATURE_BANK2_SENSOR1, */
+	/* OBD_PID_CATALYST_TEMPERATURE_BANK1_SENSOR2, */
+	/* OBD_PID_CATALYST_TEMPERATURE_BANK2_SENSOR2, */
+	/* OBD_PID_SUPPORTED_PIDS_41_60, */
+	/* OBD_PID_MONITOR_STATUS, */
+	/* OBD_PID_CONTROL_MODULE_VOLTAGE, */
+	/* OBD_PID_ABSOLUTE_LOAD_VALUE, */
+	/* OBD_PID_FUEL_AIR_COMMANDED_EQUIV_RATIO, */
+	/* OBD_PID_RELATIVE_THROTTLE_POSITION, */
 	OBD_PID_AMBIENT_AIR_TEMPERATURE,
-	OBD_PID_ABSOLUTE_THROTTLE_B,
-	OBD_PID_ABSOLUTE_THROTTLE_C,
-	OBD_PID_ACCELERATOR_PEDAL_POSITION_D,
-	OBD_PID_ACCELERATOR_PEDAL_POSITION_E,
-	OBD_PID_ACCELERATOR_PEDAL_POSITION_F,
-	OBD_PID_COMMANDED_THROTTLE_ACTUATOR,
-	OBD_PID_TIME_RUN_WITH_MIL_ON,
-	OBD_PID_TIME_SINCE_TROUBLE_CODES_CLEARED,
-	OBD_PID_MAX_VALUES,
-	OBD_PID_MAX_VALUES_2,
-	OBD_PID_FUEL_TYPE,
-	OBD_PID_ETHANOL_FUEL_PERCENT,
-	OBD_PID_ABSOLUTE_EVAP_SYS_VAPOR_PRESSURE,
-	OBD_PID_EVAP_SYSTEM_VAPOR_PRESSURE,
-	OBD_PID_SHORT_TERM_SECONDARY_O2_TRIM_BANK_1_3,
-	OBD_PID_LONG_TERM_SECONDARY_O2_TRIM_BANK_1_3,
-	OBD_PID_SHORT_TERM_SECONDARY_O2_TRIM_BANK_2_4,
-	OBD_PID_LONG_TERM_SECONDARY_O2_TRIM_BANK_2_4,
-	OBD_PID_FUEL_RAIL_ABSOLUTE_PRESSURE,
-	OBD_PID_RELATIVE_ACCELERATOR_PEDAL_POSITION,
-	OBD_PID_HYBRID_BATTERY_PACK_REMAINING_LIFE,
-	OBD_PID_ENGINE_OIL_TEMPERATURE,
-	OBD_PID_FUEL_INJECTION_TIMING,
-	OBD_PID_ENGINE_FUEL_RATE,
-	OBD_PID_EMISSION_REQUIREMENTS,
-	OBD_PID_SUPPORTED_PIDS_61_80,
-	OBD_PID_DEMAND_PERCENT_TORQUE,
-	OBD_PID_ACTUAL_PERCENT_TORQUE,
-	OBD_PID_ENGINE_REFERENCE_TORQUE,
-	OBD_PID_ENGINE_PERCENT_TORQUE_DATA,
-	OBD_PID_AUXILLARY_IO_SUPPORTED,
-	OBD_PID_MASS_AIR_FLOW_SENSOR,
-	OBD_PID_ENGINE_COOLANT_TEMPERATURE,
-	OBD_PID_INTAKE_AIR_TEMPERATURE_SENSOR
+	/* OBD_PID_ABSOLUTE_THROTTLE_B, */
+	/* OBD_PID_ABSOLUTE_THROTTLE_C, */
+	/* OBD_PID_ACCELERATOR_PEDAL_POSITION_D, */
+	/* OBD_PID_ACCELERATOR_PEDAL_POSITION_E, */
+	/* OBD_PID_ACCELERATOR_PEDAL_POSITION_F, */
+	/* OBD_PID_COMMANDED_THROTTLE_ACTUATOR, */
+	/* OBD_PID_TIME_RUN_WITH_MIL_ON, */
+	/* OBD_PID_TIME_SINCE_TROUBLE_CODES_CLEARED, */
+	/* OBD_PID_MAX_VALUES, */
+	/* OBD_PID_MAX_VALUES_2, */
+	/* OBD_PID_FUEL_TYPE, */
+	/* OBD_PID_ETHANOL_FUEL_PERCENT, */
+	/* OBD_PID_ABSOLUTE_EVAP_SYS_VAPOR_PRESSURE, */
+	/* OBD_PID_EVAP_SYSTEM_VAPOR_PRESSURE, */
+	/* OBD_PID_SHORT_TERM_SECONDARY_O2_TRIM_BANK_1_3, */
+	/* OBD_PID_LONG_TERM_SECONDARY_O2_TRIM_BANK_1_3, */
+	/* OBD_PID_SHORT_TERM_SECONDARY_O2_TRIM_BANK_2_4, */
+	/* OBD_PID_LONG_TERM_SECONDARY_O2_TRIM_BANK_2_4, */
+	/* OBD_PID_FUEL_RAIL_ABSOLUTE_PRESSURE, */
+	/* OBD_PID_RELATIVE_ACCELERATOR_PEDAL_POSITION, */
+	/* OBD_PID_HYBRID_BATTERY_PACK_REMAINING_LIFE, */
+	/* OBD_PID_ENGINE_OIL_TEMPERATURE, */
+	/* OBD_PID_FUEL_INJECTION_TIMING, */
+	/* OBD_PID_ENGINE_FUEL_RATE, */
+	/* OBD_PID_EMISSION_REQUIREMENTS, */
+	/* OBD_PID_SUPPORTED_PIDS_61_80, */
+	/* OBD_PID_DEMAND_PERCENT_TORQUE, */
+	/* OBD_PID_ACTUAL_PERCENT_TORQUE, */
+	/* OBD_PID_ENGINE_REFERENCE_TORQUE, */
+	/* OBD_PID_ENGINE_PERCENT_TORQUE_DATA, */
+	/* OBD_PID_AUXILLARY_IO_SUPPORTED, */
+	/* OBD_PID_MASS_AIR_FLOW_SENSOR, */
+	/* OBD_PID_ENGINE_COOLANT_TEMPERATURE, */
+	/* OBD_PID_INTAKE_AIR_TEMPERATURE_SENSOR */
 
 };
 
@@ -470,19 +470,43 @@ void loop() {
 	obdLoopFunction();
 	waitForObdResponse();
 	math();
-	updateChargerCurrent();
+	pollVehicleSpecific();
+	// cooldown, let the car catchup
+	//delay(10*1000);
 }
 
 unsigned long chargerTime = 0;
-void updateChargerCurrent() {
+void pollVehicleSpecific() {
 	if (millis() - chargerTime < 10000) {
 		return;
 	}
+	Particle.publish("attempting to pull extended PIDs");
 	chargerTime = millis();
+
+	requestSOC();
+	waitForExtendedResponse();
+
 	requestChargerVolt();
 	waitForExtendedResponse();
+
 	requestChargerCurrent();
 	waitForExtendedResponse();
+}
+
+// !Charger AC Voltage	ChargerVoltsIn	224368
+void requestSOC() {
+	CANMessage message;
+  // A CAN message to request the vehicle speed
+  message.id = 0x7E0;
+  message.len = 8;
+
+  // Data is an OBD request: get current value of the vehicle speed PID
+  message.data[0] = 0x03; // 2 byte request
+  message.data[1] = 0x22;
+	message.data[2] = 0x00;
+	message.data[3] = 0x5B;
+  // Send the message on the bus!
+  carloop.can().transmit(message);
 }
 
 // !Charger AC Voltage	ChargerVoltsIn	224368
@@ -528,12 +552,21 @@ void waitForExtendedResponse() {
 					message.id > OBD_CAN_REPLY_ID_MAX )	{
 					continue;
 				}
+			// Vehicle Battery %
+			if (message.data[2] == 0x00 && message.data[3] == 0x5B) {
+				float soc;
+				soc = message.data[4];
+				EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE = soc/2.55;
+				Particle.publish("received battery update", soc/2.55);
+				return;
+			}
+
+
 			// Charger Volts in
 			if (message.data[2] == 0x43 && message.data[3] == 0x68 ) {
 				float voltIn;
 				voltIn = message.data[4];
 				CHARGER_VOLTS_IN = voltIn * 2;
-				BLYNK_LOG("Received volt update: %d\n", message.data[4], message.data[5]);
         return;
       }
 			// Charger AMP in
@@ -541,7 +574,6 @@ void waitForExtendedResponse() {
 				float ampIn;
 				ampIn = message.data[4];
 				CHARGER_AMPS_IN = ampIn * 0.2;
-				BLYNK_LOG("Received amp update: %d\n", message.data[4], message.data[5]);
         return;
       }
     }
@@ -657,6 +689,12 @@ void publishValuesAtInterval() {
 	blynkValues();
 }
 
+char* fmtString(String str) {
+	char *cstr = new char[str.length() + 1];
+	strcpy(cstr, str.c_str());
+	return cstr;
+}
+
 void printString(const char* fmt, String str) {
 	char *cstr = new char[str.length() + 1];
 	strcpy(cstr, str.c_str());
@@ -664,12 +702,43 @@ void printString(const char* fmt, String str) {
 	delete [] cstr;
 }
 
+void blynkValues() {
+	Blynk.run();
+
+		printString("  Ambient: %s", StringAMBIENT_AIR_TEMPERATURE);
+	printString("      SOC: %s", StringHYBRID_BATTERY_PACK_REMAINING_LIFE);
+	printString(" Mod Volt: %s", StringCONTROL_MODULE_VOLTAGE);
+	printString(" Fuel LvL: %s", StringFUEL_TANK_LEVEL_INPUT);
+	printString("  Amps In: %s", String(CHARGER_AMPS_IN));
+	printString(" Volts In: %s", String(CHARGER_VOLTS_IN));
+	printString("Ext'd SOC: %s", String(EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE));
+
+
+	Particle.publish("temperature", fmtString(StringAMBIENT_AIR_TEMPERATURE));
+	Particle.publish("state-of-charge", fmtString(StringHYBRID_BATTERY_PACK_REMAINING_LIFE));
+	Particle.publish("extended-state-of-charge", fmtString(String(EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE)));
+
+	Blynk.virtualWrite(V0, StringAMBIENT_AIR_TEMPERATURE);
+	Blynk.virtualWrite(V1, StringHYBRID_BATTERY_PACK_REMAINING_LIFE);
+	Blynk.virtualWrite(V2, StringCONTROL_MODULE_VOLTAGE);
+	Blynk.virtualWrite(V3, StringFUEL_TANK_LEVEL_INPUT);
+	if (CHARGER_AMPS_IN > 0) {
+		Blynk.virtualWrite(V4, String(CHARGER_AMPS_IN));
+	}
+	if (CHARGER_VOLTS_IN > 0) {
+		Blynk.virtualWrite(V5, String(CHARGER_VOLTS_IN));
+	}
+	if (EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE > 0) {
+		Blynk.virtualWrite(V6, String(EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE));
+	}
+}
+
 ///////////////////////////////////////////////////
 //FUNCTION TO SEND DATA TO BYNK FOR VISUALIZATION//
 //THESE PARAMETERS ARE HERE AS AN EXAMPLE AND ARE//
 //AVAILABLE ON MY 2016 MIATA///////////////////////
 
-void blynkValues() {
+void oldBlynkValues() {
 	//TODO: ONLY SEND DATA WHEN THE ENGINE IS ON
 	Blynk.run();
 	String StringMIL_STATUS                             = String(MIL_STATUS);
@@ -711,20 +780,6 @@ void blynkValues() {
 	////////////////////////////
 	//PUBLISH STRINGS TO BLYNK//
 	////////////////////////////
-
-	printString(" Ambient: %s", StringAMBIENT_AIR_TEMPERATURE);
-	printString("  Hybrid: %s", StringHYBRID_BATTERY_PACK_REMAINING_LIFE);
-	printString("Mod Volt: %s", StringCONTROL_MODULE_VOLTAGE);
-	printString("Fuel LvL: %s", StringFUEL_TANK_LEVEL_INPUT);
-	printString(" Amps In: %s", String(CHARGER_AMPS_IN));
-	printString("Volts In: %s", String(CHARGER_VOLTS_IN));
-
-	Blynk.virtualWrite(V0, StringAMBIENT_AIR_TEMPERATURE);
-	Blynk.virtualWrite(V1, StringHYBRID_BATTERY_PACK_REMAINING_LIFE);
-	Blynk.virtualWrite(V2, StringCONTROL_MODULE_VOLTAGE);
-	Blynk.virtualWrite(V3, StringFUEL_TANK_LEVEL_INPUT);
-	Blynk.virtualWrite(V4, String(CHARGER_AMPS_IN));
-	Blynk.virtualWrite(V5, String(CHARGER_VOLTS_IN));
 
 	return;
 	Blynk.virtualWrite(V0, StringMIL_STATUS);
