@@ -704,8 +704,12 @@ void printString(const char* fmt, String str) {
 
 void blynkValues() {
 	Blynk.run();
+	String StringAMBIENT_AIR_TEMPERATURE                = String(AMBIENT_AIR_TEMPERATURE);
+	String StringHYBRID_BATTERY_PACK_REMAINING_LIFE     = String(HYBRID_BATTERY_PACK_REMAINING_LIFE);
+	String StringCONTROL_MODULE_VOLTAGE                 = String(CONTROL_MODULE_VOLTAGE);
+		String StringFUEL_TANK_LEVEL_INPUT                  = String(FUEL_TANK_LEVEL_INPUT);
 
-		printString("  Ambient: %s", StringAMBIENT_AIR_TEMPERATURE);
+	printString("  Ambient: %s", StringAMBIENT_AIR_TEMPERATURE);
 	printString("      SOC: %s", StringHYBRID_BATTERY_PACK_REMAINING_LIFE);
 	printString(" Mod Volt: %s", StringCONTROL_MODULE_VOLTAGE);
 	printString(" Fuel LvL: %s", StringFUEL_TANK_LEVEL_INPUT);
@@ -713,15 +717,22 @@ void blynkValues() {
 	printString(" Volts In: %s", String(CHARGER_VOLTS_IN));
 	printString("Ext'd SOC: %s", String(EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE));
 
-
 	Particle.publish("temperature", fmtString(StringAMBIENT_AIR_TEMPERATURE));
 	Particle.publish("state-of-charge", fmtString(StringHYBRID_BATTERY_PACK_REMAINING_LIFE));
 	Particle.publish("extended-state-of-charge", fmtString(String(EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE)));
 
-	Blynk.virtualWrite(V0, StringAMBIENT_AIR_TEMPERATURE);
-	Blynk.virtualWrite(V1, StringHYBRID_BATTERY_PACK_REMAINING_LIFE);
-	Blynk.virtualWrite(V2, StringCONTROL_MODULE_VOLTAGE);
-	Blynk.virtualWrite(V3, StringFUEL_TANK_LEVEL_INPUT);
+	if (AMBIENT_AIR_TEMPERATURE > 0) {
+		Blynk.virtualWrite(V0, StringAMBIENT_AIR_TEMPERATURE);
+	}
+	if (HYBRID_BATTERY_PACK_REMAINING_LIFE > 0) {
+		Blynk.virtualWrite(V1, StringHYBRID_BATTERY_PACK_REMAINING_LIFE);
+	}
+	if (CONTROL_MODULE_VOLTAGE > 0) {
+		Blynk.virtualWrite(V2, StringCONTROL_MODULE_VOLTAGE);
+	}
+	if (FUEL_TANK_LEVEL_INPUT > 0) {
+		Blynk.virtualWrite(V3, StringFUEL_TANK_LEVEL_INPUT);
+	}
 	if (CHARGER_AMPS_IN > 0) {
 		Blynk.virtualWrite(V4, String(CHARGER_AMPS_IN));
 	}
