@@ -17,7 +17,7 @@ STARTUP(cellular_credentials_set("broadband", "", "", NULL));
  * Free to modify, share and do whatever, just give me credit if you like it!
  * This code will publish chosen obdii compliant messages to blynk for data visualization.
  */
-
+#include "keys.h"
 #include "base85.h"
 
 // SYSTEM_MODE(SEMI_AUTOMATIC);
@@ -472,7 +472,7 @@ void loop() {
 	math();
 	pollVehicleSpecific();
 	// cooldown, let the car catchup
-	//delay(10*1000);
+	delay(10*1000);
 }
 
 unsigned long chargerTime = 0;
