@@ -451,6 +451,9 @@ unsigned long transitionTime = 0;
 uint8_t lastMessageData[8];
 
 void setup() {
+	// Set the keep-alive value for 3rd party SIM card here
+	Particle.keepAlive(120);
+
 	Particle.connect();
 	Serial.begin(115200);
 	carloop.begin();
