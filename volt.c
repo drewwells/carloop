@@ -472,7 +472,26 @@ void loop() {
 	math();
 	pollVehicleSpecific();
 	// cooldown, let the car catchup
+
+	publishGPSLocation();
 	delay(10*1000);
+}
+
+bool publishGPSLocation() {
+	if (!carloop.gps().location.isValid()) {
+		Particle.publish("gps invalid");
+		return false;
+	}
+
+	float flat = carloop.gps().location.lat();
+	float flng = carloop.gps().location.lng();
+
+	Blynk.virtualWrite(V50, "lat", flat, "lng", flng);
+
+	char buf[40];
+	sprintf(buf, "lat: %f lng: %f", flat, flng);
+	Particle.publish("GPS", buf);
+	return true;
 }
 
 unsigned long chargerTime = 0;
@@ -484,12 +503,15 @@ void pollVehicleSpecific() {
 	chargerTime = millis();
 
 	requestSOC();
+	delay(10);
 	waitForExtendedResponse();
 
 	requestChargerVolt();
+	delay(10);
 	waitForExtendedResponse();
 
 	requestChargerCurrent();
+	delay(10);
 	waitForExtendedResponse();
 }
 
@@ -741,6 +763,7 @@ void blynkValues() {
 	}
 	if (EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE > 0) {
 		Blynk.virtualWrite(V6, String(EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE));
+		Blynk.virtualWrite(V7, "Usable(SOC)", (HYBRID_BATTERY_PACK_REMAINING_LIFE-54)/1.34);
 	}
 }
 
