@@ -12,7 +12,6 @@ STARTUP(cellular_credentials_set("broadband", "", "", NULL));
  * This code will publish chosen obdii compliant messages to blynk for data visualization.
  */
 
-
 // Use primary serial over USB interface for logging output
 SerialLogHandler logHandler;
 
@@ -27,6 +26,8 @@ SYSTEM_THREAD(ENABLED);
 
 #include "keys.h"
 #include "base85.h"
+
+CANChannel can(CAN_D1_D2);
 
 void sendObdRequest();
 void waitForObdResponse();
@@ -473,15 +474,38 @@ void setup() {
 void loop() {
 
 	carloop.update();
-	printValuesAtInterval();
-	publishValuesAtInterval();
-	obdLoopFunction();
-	waitForObdResponse();
-	math();
-	pollVehicleSpecific();
-	// cooldown, let the car catchup
 
+	// Reset cached values
+	// resetValues();
+
+	//obdLoopFunction();
+	//waitForObdResponse();
+	// math();
+
+	// Drain any received messages
+	waitForExtendedResponse();
+
+	// request standard PIDs
+	sendObdRequest();
+	waitForExtendedResponse();
+
+	// request vehicle specific PIDs
+	pollVehicleSpecific();
+	uint8_t count = can.available();
+	Particle.publish("AVAIL", String(count));
+	waitForExtendedResponse();
+
+	String combo = String(EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE);
+	Particle.publish("PID CHECK", combo);
+
+	blynkValues();
 	publishGPSLocation();
+	delay(100);
+	count = can.available();
+	Particle.publish("AVAIL2", String(count));
+	waitForExtendedResponse();
+
+	// cooldown, let the car catchup
 	delay(10*1000);
 }
 
@@ -502,21 +526,10 @@ bool publishGPSLocation() {
 	return true;
 }
 
-unsigned long chargerTime = 0;
 void pollVehicleSpecific() {
-	chargerTime = millis();
-
 	requestSOC();
-	delay(10);
-	waitForExtendedResponse();
-
 	requestChargerVolt();
-	delay(10);
-	waitForExtendedResponse();
-
 	requestChargerCurrent();
-	delay(10);
-	waitForExtendedResponse();
 }
 
 // !Charger AC Voltage	ChargerVoltsIn	224368
@@ -568,16 +581,47 @@ void requestChargerCurrent() {
 }
 
 void waitForExtendedResponse() {
-	uint32_t start = millis();
-  while (millis() - start < OBD_TIMEOUT_MS)
+	CANMessage message;
+  //while (millis() - start < OBD_TIMEOUT_MS)
+	// exhaust receive buffer
+	while (carloop.can().receive(message))
   {
-    CANMessage message;
-    if (carloop.can().receive(message))
+    if (true)
     {
       if (message.id < OBD_CAN_REPLY_ID_MIN ||
 					message.id > OBD_CAN_REPLY_ID_MAX )	{
 					continue;
 				}
+
+			char found[40];
+			sprintf(found, "ID: %X 2: %X 3: %X", int(message.id),
+							message.data[2], message.data[3]);
+			String str = String("FOUND");
+			str.concat(String(" "));
+			str.concat(String(found));
+			Particle.publish(str);
+
+			// Ambient Temp
+			if (message.data[2] == 0x46) {
+				float ambientAirTemperature;
+				ambientAirTemperature = message.data[3] - 40;
+				AMBIENT_AIR_TEMPERATURE = ambientAirTemperature;
+			}
+
+			if (message.data[2] == 0x42) {
+				float controlModuleVoltageA;
+				float controlModuleVoltageB;
+				controlModuleVoltageA = message.data[3];
+				controlModuleVoltageB = message.data[4];
+				CONTROL_MODULE_VOLTAGE = (256 * controlModuleVoltageA + controlModuleVoltageB)/1000;
+			}
+
+			if (message.data[2] == 0x2f) {
+				float fuelTankLevelInput;
+				fuelTankLevelInput = message.data[3]/2.55;
+				FUEL_TANK_LEVEL_INPUT = fuelTankLevelInput;
+			}
+
 			// Vehicle Battery %
 			if (message.data[2] == 0x00 && message.data[3] == 0x5B) {
 				float soc;
@@ -603,7 +647,7 @@ void waitForExtendedResponse() {
       }
     }
   }
-	BLYNK_LOG("Failed to update Charger");
+	Particle.publish("FAIL", "no valid values found in wait fn");
 }
 
 /*************** Begin: OBD Loop Functions ****************/
