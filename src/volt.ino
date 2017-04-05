@@ -1,11 +1,3 @@
-/*
- * Project volt
- * Description:
- * Author:
- * Date:
- */
-
-
 #define BLYNK_PRINT Serial // Defines the object that is used for printing
 //#define BLYNK_DEBUG        // Optional, this enables more detailed prints
 
@@ -14,22 +6,24 @@
 #include "cellular_hal.h"
 STARTUP(cellular_credentials_set("broadband", "", "", NULL));
 
+/*
+ * Copyright 2016 Emerson Garland
+ * Free to modify, share and do whatever, just give me credit if you like it!
+ * This code will publish chosen obdii compliant messages to blynk for data visualization.
+ */
+
+
+// SYSTEM_MODE(SEMI_AUTOMATIC);
+SYSTEM_THREAD(ENABLED);
+
 // This #include statement was automatically added by the Particle IDE.
 #include <blynk.h>
 
 // This #include statement was automatically added by the Particle IDE.
 #include <carloop.h>
 
-/*
- * Copyright 2016 Emerson Garland
- * Free to modify, share and do whatever, just give me credit if you like it!
- * This code will publish chosen obdii compliant messages to blynk for data visualization.
- */
 #include "keys.h"
 #include "base85.h"
-
-// SYSTEM_MODE(SEMI_AUTOMATIC);
-SYSTEM_THREAD(ENABLED);
 
 void sendObdRequest();
 void waitForObdResponse();
@@ -487,10 +481,10 @@ void loop() {
 
 bool publishGPSLocation() {
 	if (!carloop.gps().location.isValid()) {
-		Particle.publish("gps invalid");
+		Particle.publish("GPS", "invalid, giving up");
 		return false;
 	}
-
+	Particle.publish("GPS", "isvalid, pulling info");
 	float flat = carloop.gps().location.lat();
 	float flng = carloop.gps().location.lng();
 
@@ -504,10 +498,6 @@ bool publishGPSLocation() {
 
 unsigned long chargerTime = 0;
 void pollVehicleSpecific() {
-	if (millis() - chargerTime < 10000) {
-		return;
-	}
-	Particle.publish("attempting to pull extended PIDs");
 	chargerTime = millis();
 
 	requestSOC();
@@ -587,7 +577,6 @@ void waitForExtendedResponse() {
 				float soc;
 				soc = message.data[4];
 				EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE = soc/2.55;
-				Particle.publish("received battery update", soc/2.55);
 				return;
 			}
 
@@ -747,9 +736,10 @@ void blynkValues() {
 	printString(" Volts In: %s", String(CHARGER_VOLTS_IN));
 	printString("Ext'd SOC: %s", String(EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE));
 
-	Particle.publish("temperature", fmtString(StringAMBIENT_AIR_TEMPERATURE));
-	Particle.publish("state-of-charge", fmtString(StringHYBRID_BATTERY_PACK_REMAINING_LIFE));
-	Particle.publish("extended-state-of-charge", fmtString(String(EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE)));
+	Particle.publish("PID TEMP     ", fmtString(StringAMBIENT_AIR_TEMPERATURE));
+	Particle.publish("PID SOC      ", fmtString(StringHYBRID_BATTERY_PACK_REMAINING_LIFE));
+	Particle.publish("PID EXT'D SOC", fmtString(String(EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE)));
+	Particle.publish("PID USABLESOC", fmtString(String((HYBRID_BATTERY_PACK_REMAINING_LIFE-54)/1.34)));
 
 	if (AMBIENT_AIR_TEMPERATURE > 0) {
 		Blynk.virtualWrite(V0, StringAMBIENT_AIR_TEMPERATURE);
