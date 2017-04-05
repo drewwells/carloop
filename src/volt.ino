@@ -13,6 +13,9 @@ STARTUP(cellular_credentials_set("broadband", "", "", NULL));
  */
 
 
+// Use primary serial over USB interface for logging output
+SerialLogHandler logHandler;
+
 // SYSTEM_MODE(SEMI_AUTOMATIC);
 SYSTEM_THREAD(ENABLED);
 
@@ -152,7 +155,6 @@ float CONTROL_MODULE_VOLTAGE;
 float ABSOLUTE_LOAD_VALUE;
 float FUEL_AIR_COMMANDED_EQUIV_RATIO;
 float RELATIVE_THROTTLE_POSITION;
-float AMBIENT_AIR_TEMPERATURE;
 float ABSOLUTE_THROTTLE_B;
 float ABSOLUTE_THROTTLE_C;
 float ACCELERATOR_PEDAL_POSITION_D;
@@ -188,10 +190,14 @@ float MASS_AIR_FLOW_SENSOR;
 float ENGINE_COOLANT_TEMPERATURE;
 float INTAKE_AIR_TEMPERATURE_SENSOR;
 
+// Interesting values
+float AMBIENT_AIR_TEMPERATURE;
+
+
 // Chevy (Volt) specific PIDs
-float CHARGER_AMPS_IN;
-float CHARGER_VOLTS_IN;
-float EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE;
+float CHARGER_AMPS_IN = -1;
+float CHARGER_VOLTS_IN = -1;
+float EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE = -1;
 
 ///////////////////////////////////////////////////////////////////////////
 //GLOBAL INTEGERS FOR USE IN PERFORMING MATH AND EXTRACTION OF OBDII DATA//
@@ -721,48 +727,63 @@ void printString(const char* fmt, String str) {
 	delete [] cstr;
 }
 
+void resetValues() {
+	AMBIENT_AIR_TEMPERATURE = -1;
+	CONTROL_MODULE_VOLTAGE = -1;
+	FUEL_TANK_LEVEL_INPUT = -1;
+	CHARGER_VOLTS_IN = -1;
+	CHARGER_AMPS_IN = -1;
+	EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE = -1;
+}
+
+void publishValue(int vpin, const char* partKey, float data) {
+	if (data > -1) {
+		String sData = String(data);
+		String msg = String(String(partKey) + " ");
+		msg.concat(String(data, 2));
+		Log.info(msg);
+		Blynk.virtualWrite(vpin, sData);
+		Particle.publish(partKey, data);
+	}
+}
+
 void blynkValues() {
 	Blynk.run();
 	String StringAMBIENT_AIR_TEMPERATURE                = String(AMBIENT_AIR_TEMPERATURE);
-	String StringHYBRID_BATTERY_PACK_REMAINING_LIFE     = String(HYBRID_BATTERY_PACK_REMAINING_LIFE);
 	String StringCONTROL_MODULE_VOLTAGE                 = String(CONTROL_MODULE_VOLTAGE);
-		String StringFUEL_TANK_LEVEL_INPUT                  = String(FUEL_TANK_LEVEL_INPUT);
+	String StringFUEL_TANK_LEVEL_INPUT                = String(FUEL_TANK_LEVEL_INPUT);
 
-	printString("  Ambient: %s", StringAMBIENT_AIR_TEMPERATURE);
-	printString("      SOC: %s", StringHYBRID_BATTERY_PACK_REMAINING_LIFE);
-	printString(" Mod Volt: %s", StringCONTROL_MODULE_VOLTAGE);
-	printString(" Fuel LvL: %s", StringFUEL_TANK_LEVEL_INPUT);
-	printString("  Amps In: %s", String(CHARGER_AMPS_IN));
-	printString(" Volts In: %s", String(CHARGER_VOLTS_IN));
-	printString("Ext'd SOC: %s", String(EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE));
+	publishValue(V0, "PID TEMP", AMBIENT_AIR_TEMPERATURE);
+	// printString("  Ambient: %s", StringAMBIENT_AIR_TEMPERATURE);
+	// printString(" Mod Volt: %s", StringCONTROL_MODULE_VOLTAGE);
+	// printString(" Fuel LvL: %s", StringFUEL_TANK_LEVEL_INPUT);
+	// printString("  Amps In: %s", String(CHARGER_AMPS_IN));
+	// printString(" Volts In: %s", String(CHARGER_VOLTS_IN));
+	// printString("Ext'd SOC: %s", String(EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE));
 
-	Particle.publish("PID TEMP     ", fmtString(StringAMBIENT_AIR_TEMPERATURE));
-	Particle.publish("PID SOC      ", fmtString(StringHYBRID_BATTERY_PACK_REMAINING_LIFE));
-	Particle.publish("PID EXT'D SOC", fmtString(String(EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE)));
-	Particle.publish("PID USABLESOC", fmtString(String((HYBRID_BATTERY_PACK_REMAINING_LIFE-54)/1.34)));
+	// Particle.publish("PID TEMP     ", fmtString(StringAMBIENT_AIR_TEMPERATURE));
+	// Particle.publish("PID EXT'D SOC", fmtString(String(EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE)));
+	// Particle.publish("PID USABLESOC", fmtString(String((HYBRID_BATTERY_PACK_REMAINING_LIFE-54)/1.34)));
 
-	if (AMBIENT_AIR_TEMPERATURE > 0) {
-		Blynk.virtualWrite(V0, StringAMBIENT_AIR_TEMPERATURE);
-	}
-	if (HYBRID_BATTERY_PACK_REMAINING_LIFE > 0) {
-		Blynk.virtualWrite(V1, StringHYBRID_BATTERY_PACK_REMAINING_LIFE);
-	}
-	if (CONTROL_MODULE_VOLTAGE > 0) {
-		Blynk.virtualWrite(V2, StringCONTROL_MODULE_VOLTAGE);
-	}
-	if (FUEL_TANK_LEVEL_INPUT > 0) {
-		Blynk.virtualWrite(V3, StringFUEL_TANK_LEVEL_INPUT);
-	}
-	if (CHARGER_AMPS_IN > 0) {
-		Blynk.virtualWrite(V4, String(CHARGER_AMPS_IN));
-	}
-	if (CHARGER_VOLTS_IN > 0) {
-		Blynk.virtualWrite(V5, String(CHARGER_VOLTS_IN));
-	}
-	if (EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE > 0) {
-		Blynk.virtualWrite(V6, String(EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE));
-		Blynk.virtualWrite(V7, "Usable(SOC)", (HYBRID_BATTERY_PACK_REMAINING_LIFE-54)/1.34);
-	}
+	// if (AMBIENT_AIR_TEMPERATURE > -1) {
+	// 	Blynk.virtualWrite(V0, StringAMBIENT_AIR_TEMPERATURE);
+	// }
+	// if (CONTROL_MODULE_VOLTAGE > -1) {
+	// 	Blynk.virtualWrite(V2, StringCONTROL_MODULE_VOLTAGE);
+	// }
+	// if (FUEL_TANK_LEVEL_INPUT > -1) {
+	// 	Blynk.virtualWrite(V3, StringFUEL_TANK_LEVEL_INPUT);
+	// }
+	// if (CHARGER_AMPS_IN > -1) {
+	// 	Blynk.virtualWrite(V4, String(CHARGER_AMPS_IN));
+	// }
+	// if (CHARGER_VOLTS_IN > -1) {
+	// 	Blynk.virtualWrite(V5, String(CHARGER_VOLTS_IN));
+	// }
+	// if (EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE > -1) {
+	// 	Blynk.virtualWrite(V6, String(EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE));
+	// 	Blynk.virtualWrite(V7, "Usable(SOC)", (HYBRID_BATTERY_PACK_REMAINING_LIFE-54)/1.34);
+	// }
 }
 
 ///////////////////////////////////////////////////
