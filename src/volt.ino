@@ -27,7 +27,7 @@ SYSTEM_THREAD(ENABLED);
 #include "keys.h"
 #include "base85.h"
 
-CANChannel can(CAN_D1_D2);
+//CANChannel can(CAN_D1_D2);
 
 void sendObdRequest();
 void waitForObdResponse();
@@ -491,18 +491,16 @@ void loop() {
 
 	// request vehicle specific PIDs
 	pollVehicleSpecific();
-	uint8_t count = can.available();
-	Particle.publish("AVAIL", String(count));
+	//uint8_t count = can.available();
+	//Particle.publish("AVAIL", String(count));
 	waitForExtendedResponse();
 
 	String combo = String(EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE);
-	Particle.publish("PID CHECK", combo);
+	Particle.publish("CHECK", combo);
 
 	blynkValues();
 	publishGPSLocation();
 	delay(100);
-	count = can.available();
-	Particle.publish("AVAIL2", String(count));
 	waitForExtendedResponse();
 
 	// cooldown, let the car catchup
@@ -606,6 +604,8 @@ void waitForExtendedResponse() {
 				float ambientAirTemperature;
 				ambientAirTemperature = message.data[3] - 40;
 				AMBIENT_AIR_TEMPERATURE = ambientAirTemperature;
+				publishValue(V0, "TEMP", AMBIENT_AIR_TEMPERATURE);
+				continue;
 			}
 
 			if (message.data[2] == 0x42) {
@@ -614,12 +614,16 @@ void waitForExtendedResponse() {
 				controlModuleVoltageA = message.data[3];
 				controlModuleVoltageB = message.data[4];
 				CONTROL_MODULE_VOLTAGE = (256 * controlModuleVoltageA + controlModuleVoltageB)/1000;
+				publishValue(V1, "CMV", CONTROL_MODULE_VOLTAGE);
+				continue;
 			}
 
 			if (message.data[2] == 0x2f) {
 				float fuelTankLevelInput;
 				fuelTankLevelInput = message.data[3]/2.55;
 				FUEL_TANK_LEVEL_INPUT = fuelTankLevelInput;
+				publishValue(V2, "FUEL_TANK", FUEL_TANK_LEVEL_INPUT);
+				continue;
 			}
 
 			// Vehicle Battery %
@@ -627,7 +631,8 @@ void waitForExtendedResponse() {
 				float soc;
 				soc = message.data[4];
 				EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE = soc/2.55;
-				return;
+				publishValue(V3, "BATTERY_PCT", EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE);
+				continue;
 			}
 
 
@@ -636,14 +641,16 @@ void waitForExtendedResponse() {
 				float voltIn;
 				voltIn = message.data[4];
 				CHARGER_VOLTS_IN = voltIn * 2;
-        return;
+				publishValue(V4, "CHARGER_VOLTS_IN", EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE);
+				continue;
       }
 			// Charger AMP in
 			if (message.data[2] == 0x43 && message.data[3] == 0x69 ) {
 				float ampIn;
 				ampIn = message.data[4];
 				CHARGER_AMPS_IN = ampIn * 0.2;
-        return;
+				publishValue(V4, "CHARGER_AMPS_IN", EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE);
+        continue;
       }
     }
   }
@@ -797,7 +804,6 @@ void blynkValues() {
 	String StringCONTROL_MODULE_VOLTAGE                 = String(CONTROL_MODULE_VOLTAGE);
 	String StringFUEL_TANK_LEVEL_INPUT                = String(FUEL_TANK_LEVEL_INPUT);
 
-	publishValue(V0, "PID TEMP", AMBIENT_AIR_TEMPERATURE);
 	// printString("  Ambient: %s", StringAMBIENT_AIR_TEMPERATURE);
 	// printString(" Mod Volt: %s", StringCONTROL_MODULE_VOLTAGE);
 	// printString(" Fuel LvL: %s", StringFUEL_TANK_LEVEL_INPUT);
