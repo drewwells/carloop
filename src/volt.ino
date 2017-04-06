@@ -1,22 +1,14 @@
 #define BLYNK_PRINT Serial // Defines the object that is used for printing
 //#define BLYNK_DEBUG        // Optional, this enables more detailed prints
 
-// required for ATT SIM
-// https://community.particle.io/t/how-to-setup-the-third-party-sim/22271
-#include "cellular_hal.h"
-STARTUP(cellular_credentials_set("broadband", "", "", NULL));
+SYSTEM_MODE(AUTOMATIC);
+SYSTEM_THREAD(ENABLED);
 
 /*
  * Copyright 2016 Emerson Garland
  * Free to modify, share and do whatever, just give me credit if you like it!
  * This code will publish chosen obdii compliant messages to blynk for data visualization.
  */
-
-// Use primary serial over USB interface for logging output
-SerialLogHandler logHandler;
-
-// SYSTEM_MODE(SEMI_AUTOMATIC);
-SYSTEM_THREAD(ENABLED);
 
 // This #include statement was automatically added by the Particle IDE.
 #include <blynk.h>
@@ -26,6 +18,11 @@ SYSTEM_THREAD(ENABLED);
 
 #include "keys.h"
 #include "base85.h"
+
+// required for ATT SIM
+// https://community.particle.io/t/how-to-setup-the-third-party-sim/22271
+#include "cellular_hal.h"
+STARTUP(cellular_credentials_set("broadband", "", "", NULL));
 
 //CANChannel can(CAN_D1_D2);
 
@@ -125,7 +122,6 @@ float O2_F_A_E_R_V_8_VOLTAGE;
 float COMMANDED_EGR;
 float EGR_ERROR;
 float COMMANDED_EVAPORATIVE_PURGE;
-float FUEL_TANK_LEVEL_INPUT;
 float WARM_UPS_SINCE_CODES_CLEARED;
 float DISTANCE_TRAVELED_SINCE_CODES_CLEARED;
 float EVAPORATOR_SYSTEM_PRESSURE;
@@ -152,7 +148,6 @@ float CATALYST_TEMPERATURE_BANK1_SENSOR2;
 float CATALYST_TEMPERATURE_BANK2_SENSOR2;
 float SUPPORTED_PIDS_41_60;
 float MONITOR_STATUS;
-float CONTROL_MODULE_VOLTAGE;
 float ABSOLUTE_LOAD_VALUE;
 float FUEL_AIR_COMMANDED_EQUIV_RATIO;
 float RELATIVE_THROTTLE_POSITION;
@@ -192,7 +187,9 @@ float ENGINE_COOLANT_TEMPERATURE;
 float INTAKE_AIR_TEMPERATURE_SENSOR;
 
 // Interesting values
-float AMBIENT_AIR_TEMPERATURE;
+float AMBIENT_AIR_TEMPERATURE = -1;
+float CONTROL_MODULE_VOLTAGE = -1;
+float FUEL_TANK_LEVEL_INPUT = -1;
 
 
 // Chevy (Volt) specific PIDs
@@ -455,6 +452,75 @@ uint8_t pidIndex = NUM_PIDS_TO_REQUEST - 1;
 
 String dumpForPublish;
 
+struct Payload {
+	int vpin;
+	const char* partKey;
+	float data;
+};
+
+struct Payload makePayload(int vpin, const char* partKey, float data) {
+	struct Payload *p;
+	Particle.publish(partKey, data);
+	p->vpin = vpin;
+	p->partKey = partKey;
+	p->data = data;
+	return *p;
+}
+
+void publishValue(struct Payload queue[], int max) {
+	return;
+	for (int i = 0; i < max; i++) {
+		struct Payload p;
+		p = queue[i];
+		//void publishValue(int vpin, const char* partKey, float data) {
+		if (p.data > -1) {
+			String sData = String(p.data);
+			String msg = String(String(p.partKey) + " ");
+			msg.concat(String(p.data, 2));
+			printString("SEND %s", msg);
+			Blynk.virtualWrite(p.vpin, sData);
+			bool sent = Particle.publish(p.partKey, p.data);
+			if (!sent) {
+				printString("failed to publish %s", p.partKey);
+			} else {
+				printString("published %s", p.partKey);
+			}
+		}
+	}
+}
+
+void pushValue(int vpin, const char* key, float data) {
+	String sData = String(data);
+	Particle.publish(key, sData);
+	Blynk.virtualWrite(vpin, data);
+}
+
+void publishValues() {
+	if (AMBIENT_AIR_TEMPERATURE > -1) {
+		pushValue(V0, "TEMP", AMBIENT_AIR_TEMPERATURE);
+	}
+
+	if (CONTROL_MODULE_VOLTAGE > -1) {
+		pushValue(V1, "CMV", CONTROL_MODULE_VOLTAGE);
+	}
+
+	if (FUEL_TANK_LEVEL_INPUT > -1) {
+		pushValue(V2, "FUEL_TANK", FUEL_TANK_LEVEL_INPUT);
+	}
+
+	if (EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE > -1) {
+		pushValue(V3, "BATTERY_PCT", EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE);
+	}
+
+	if (CHARGER_VOLTS_IN > -1) {
+		pushValue(V4, "CHARGER_VOLTS_IN", CHARGER_VOLTS_IN);
+	}
+
+	if (CHARGER_AMPS_IN > -1) {
+		pushValue(V5, "CHARGER_AMPS_IN", CHARGER_AMPS_IN);
+	}
+}
+
 auto *obdLoopFunction = sendObdRequest;
 unsigned long transitionTime = 0;
 uint8_t lastMessageData[8];
@@ -470,20 +536,9 @@ void setup() {
 	Blynk.begin(auth, server);
 }
 
-
 void loop() {
 
 	carloop.update();
-
-	// Reset cached values
-	// resetValues();
-
-	//obdLoopFunction();
-	//waitForObdResponse();
-	// math();
-
-	// Drain any received messages
-	waitForExtendedResponse();
 
 	// request standard PIDs
 	sendObdRequest();
@@ -491,20 +546,17 @@ void loop() {
 
 	// request vehicle specific PIDs
 	pollVehicleSpecific();
-	//uint8_t count = can.available();
-	//Particle.publish("AVAIL", String(count));
 	waitForExtendedResponse();
+
+	//publishGPSLocation();
+	publishValues();
 
 	String combo = String(EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE);
 	Particle.publish("CHECK", combo);
-
-	blynkValues();
-	publishGPSLocation();
-	delay(100);
-	waitForExtendedResponse();
-
+	Blynk.virtualWrite(V49, "up");
 	// cooldown, let the car catchup
 	delay(10*1000);
+	resetValues();
 }
 
 bool publishGPSLocation() {
@@ -526,11 +578,13 @@ bool publishGPSLocation() {
 
 void pollVehicleSpecific() {
 	requestSOC();
+	waitForExtendedResponse();
 	requestChargerVolt();
+	waitForExtendedResponse();
 	requestChargerCurrent();
+	waitForExtendedResponse();
 }
 
-// !Charger AC Voltage	ChargerVoltsIn	224368
 void requestSOC() {
 	CANMessage message;
   // A CAN message to request the vehicle speed
@@ -546,7 +600,6 @@ void requestSOC() {
   carloop.can().transmit(message);
 }
 
-// !Charger AC Voltage	ChargerVoltsIn	224368
 void requestChargerVolt() {
 	CANMessage message;
   // A CAN message to request the vehicle speed
@@ -562,7 +615,6 @@ void requestChargerVolt() {
   carloop.can().transmit(message);
 }
 
-// !Charger AC Current	ChargerAmpsIn	224369
 void requestChargerCurrent() {
 	CANMessage message;
   // A CAN message to request the vehicle speed
@@ -579,82 +631,104 @@ void requestChargerCurrent() {
 }
 
 void waitForExtendedResponse() {
+	//int idx = 0;
+	//int MAX_SIZE = 10;
+	//Payload queue[MAX_SIZE];
 	CANMessage message;
   //while (millis() - start < OBD_TIMEOUT_MS)
 	// exhaust receive buffer
 	while (carloop.can().receive(message))
   {
-    if (true)
-    {
-      if (message.id < OBD_CAN_REPLY_ID_MIN ||
-					message.id > OBD_CAN_REPLY_ID_MAX )	{
-					continue;
-				}
+		if (message.id < OBD_CAN_REPLY_ID_MIN ||
+				message.id > OBD_CAN_REPLY_ID_MAX )	{
+			continue;
+		}
+		// if (idx > 9) {
+		// 	Particle.publish("FAIL", "overflowed queue");
+		// 	publishValue(queue, idx);
+		// 	return;
+		// }
 
-			char found[40];
-			sprintf(found, "ID: %X 2: %X 3: %X", int(message.id),
-							message.data[2], message.data[3]);
-			String str = String("FOUND");
-			str.concat(String(" "));
-			str.concat(String(found));
-			Particle.publish(str);
+		Blynk.run();
+		char found[40];
+		sprintf(found, "ID: %X 2: %X 3: %X", int(message.id),
+						message.data[2], message.data[3]);
+		String str = String("FOUND");
+		str.concat(String(" "));
+		str.concat(String(found));
+		printString("%s", str);
 
-			// Ambient Temp
-			if (message.data[2] == 0x46) {
-				float ambientAirTemperature;
-				ambientAirTemperature = message.data[3] - 40;
-				AMBIENT_AIR_TEMPERATURE = ambientAirTemperature;
-				publishValue(V0, "TEMP", AMBIENT_AIR_TEMPERATURE);
-				continue;
-			}
+		// Ambient Temp
+		if (message.data[2] == 0x46) {
+			float ambientAirTemperature;
+			ambientAirTemperature = message.data[3] - 40;
+			AMBIENT_AIR_TEMPERATURE = ambientAirTemperature;
+			//queue[idx] = makePayload(V0, "TEMP", AMBIENT_AIR_TEMPERATURE);
+			//idx++;
+			continue;
+		}
 
-			if (message.data[2] == 0x42) {
-				float controlModuleVoltageA;
-				float controlModuleVoltageB;
-				controlModuleVoltageA = message.data[3];
-				controlModuleVoltageB = message.data[4];
-				CONTROL_MODULE_VOLTAGE = (256 * controlModuleVoltageA + controlModuleVoltageB)/1000;
-				publishValue(V1, "CMV", CONTROL_MODULE_VOLTAGE);
-				continue;
-			}
+		if (message.data[2] == 0x42) {
+			float controlModuleVoltageA;
+			float controlModuleVoltageB;
+			controlModuleVoltageA = message.data[3];
+			controlModuleVoltageB = message.data[4];
+			CONTROL_MODULE_VOLTAGE = (256 * controlModuleVoltageA + controlModuleVoltageB)/1000;
+			//queue[idx] = makePayload(V1, "CMV", CONTROL_MODULE_VOLTAGE);
+			//idx++;
+			continue;
+		}
 
-			if (message.data[2] == 0x2f) {
-				float fuelTankLevelInput;
-				fuelTankLevelInput = message.data[3]/2.55;
-				FUEL_TANK_LEVEL_INPUT = fuelTankLevelInput;
-				publishValue(V2, "FUEL_TANK", FUEL_TANK_LEVEL_INPUT);
-				continue;
-			}
+		if (message.data[2] == 0x2f) {
+			float fuelTankLevelInput;
+			fuelTankLevelInput = message.data[3]/2.55;
+			FUEL_TANK_LEVEL_INPUT = fuelTankLevelInput;
+			//queue[idx] = makePayload(V2, "FUEL_TANK", FUEL_TANK_LEVEL_INPUT);
+			//idx++;
+			continue;
+		}
 
-			// Vehicle Battery %
-			if (message.data[2] == 0x00 && message.data[3] == 0x5B) {
-				float soc;
-				soc = message.data[4];
-				EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE = soc/2.55;
-				publishValue(V3, "BATTERY_PCT", EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE);
-				continue;
-			}
+		// Vehicle Battery %
+		if (message.data[2] == 0x00 && message.data[3] == 0x5B) {
+			float soc;
+			soc = message.data[4];
+			EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE = soc/2.55;
+			//queue[idx] = makePayload(V3, "BATTERY_PCT", EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE);
+			//idx++;
+			continue;
+		}
 
 
-			// Charger Volts in
-			if (message.data[2] == 0x43 && message.data[3] == 0x68 ) {
-				float voltIn;
-				voltIn = message.data[4];
-				CHARGER_VOLTS_IN = voltIn * 2;
-				publishValue(V4, "CHARGER_VOLTS_IN", EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE);
-				continue;
-      }
-			// Charger AMP in
-			if (message.data[2] == 0x43 && message.data[3] == 0x69 ) {
-				float ampIn;
-				ampIn = message.data[4];
-				CHARGER_AMPS_IN = ampIn * 0.2;
-				publishValue(V4, "CHARGER_AMPS_IN", EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE);
-        continue;
-      }
-    }
-  }
-	Particle.publish("FAIL", "no valid values found in wait fn");
+		// Charger Volts in
+		if (message.data[2] == 0x43 && message.data[3] == 0x68 ) {
+			float voltIn;
+			voltIn = message.data[4];
+			CHARGER_VOLTS_IN = voltIn * 2;
+			//queue[idx] = makePayload(V4, "CHARGER_VOLTS_IN", CHARGER_VOLTS_IN);
+			//idx++;
+			continue;
+		}
+		// Charger AMP in
+		if (message.data[2] == 0x43 && message.data[3] == 0x69 ) {
+			float ampIn;
+			ampIn = message.data[4];
+			CHARGER_AMPS_IN = ampIn * 0.2;
+			//queue[idx] = makePayload(V5, "CHARGER_AMPS_IN", CHARGER_AMPS_IN);
+			//idx++;
+			continue;
+		}
+
+		if (message.id > 0) {
+			// char buf[40];
+			// sprintf(buf, "{\"id\":%X,\"2\":%X,\"3\":%f,\"4\":%f}",
+			// 				message.id, message.data[2], message.data[3],
+			// 				message.data[4]);
+			// printString("UNMATCHED %s", buf);
+		}
+
+	}
+	//publishValue(queue, idx);
+	//Particle.publish("FAIL", "no valid values found in wait fn");
 }
 
 /*************** Begin: OBD Loop Functions ****************/
@@ -785,17 +859,6 @@ void resetValues() {
 	CHARGER_VOLTS_IN = -1;
 	CHARGER_AMPS_IN = -1;
 	EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE = -1;
-}
-
-void publishValue(int vpin, const char* partKey, float data) {
-	if (data > -1) {
-		String sData = String(data);
-		String msg = String(String(partKey) + " ");
-		msg.concat(String(data, 2));
-		Log.info(msg);
-		Blynk.virtualWrite(vpin, sData);
-		Particle.publish(partKey, data);
-	}
 }
 
 void blynkValues() {
