@@ -552,6 +552,9 @@ void setup() {
 	Blynk.begin(auth, server);
 }
 
+
+unsigned long lastCheck = 0;
+const auto CHECK_TO = 30;
 void loop() {
 
 	carloop.update();
@@ -570,10 +573,13 @@ void loop() {
 	// we tried twice, what did we end up with
 	publishValues();
 
-
-	String combo = String(EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE);
-	Particle.publish("CHECK", combo);
-	Blynk.virtualWrite(V49, "up");
+	// Only heartbeat every 30seconds
+	if (millis() - lastCheck > CHECK_TO) {
+		String combo = String(EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE);
+		Particle.publish("CHECK", combo);
+		Blynk.virtualWrite(V49, "up");
+		lastCheck = millis();
+	}
 	// cooldown, let the car catchup
 	delay(1*1000);
 	resetValues();
