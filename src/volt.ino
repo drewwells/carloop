@@ -27,7 +27,6 @@ STARTUP(cellular_credentials_set("broadband", "", "", NULL));
 //CANChannel can(CAN_D1_D2);
 
 void sendObdRequest();
-void waitForObdResponse();
 void delayUntilNextRequest();
 void printValuesAtInterval();
 void publishValuesAtInterval();
@@ -74,7 +73,6 @@ float LONG_TERM_FUEL_TRIM_BANK_2;
 float FUEL_PRESSURE;
 float INTAKE_MANIFOLD_PRESSURE;
 float ENGINE_RPM;
-float VEHICLE_SPEED;
 float TIMING_ADVANCE;
 float INTAKE_AIR_TEMPERATURE;
 float MAF_AIR_FLOW_RATE;
@@ -187,6 +185,7 @@ float ENGINE_COOLANT_TEMPERATURE;
 float INTAKE_AIR_TEMPERATURE_SENSOR;
 
 // Interesting values
+float VEHICLE_SPEED = -1;
 float AMBIENT_AIR_TEMPERATURE = -1;
 float CONTROL_MODULE_VOLTAGE = -1;
 float FUEL_TANK_LEVEL_INPUT = -1;
@@ -493,9 +492,19 @@ void pushValue(int vpin, const char* key, float data) {
 	String sData = String(data);
 	Particle.publish(key, sData);
 	Blynk.virtualWrite(vpin, data);
+	String msg = String(key);
+	msg.concat(String(" "));
+	msg.concat(sData);
+	printString("%s", msg);
 }
 
+auto *obdLoopFunction = sendObdRequest;
+unsigned long transitionTime = 0;
+uint8_t lastMessageData[8];
+char* unmatched;
+
 void publishValues() {
+	Blynk.run();
 	if (AMBIENT_AIR_TEMPERATURE > -1) {
 		pushValue(V0, "TEMP", AMBIENT_AIR_TEMPERATURE);
 	}
@@ -519,11 +528,18 @@ void publishValues() {
 	if (CHARGER_AMPS_IN > -1) {
 		pushValue(V5, "CHARGER_AMPS_IN", CHARGER_AMPS_IN);
 	}
+
+	if (VEHICLE_SPEED > -1) {
+		pushValue(V20, "VEHICLE_SPEED", VEHICLE_SPEED);
+	}
+
+	if (unmatched[0] != '\0') {
+		Particle.publish("UNK", String(unmatched));
+		Blynk.virtualWrite(V50, unmatched);
+		*unmatched = '\0';
+	}
 }
 
-auto *obdLoopFunction = sendObdRequest;
-unsigned long transitionTime = 0;
-uint8_t lastMessageData[8];
 
 void setup() {
 	// Set the keep-alive value for 3rd party SIM card here
@@ -539,6 +555,7 @@ void setup() {
 void loop() {
 
 	carloop.update();
+	waitForExtendedResponse();
 
 	// request standard PIDs
 	sendObdRequest();
@@ -546,16 +563,19 @@ void loop() {
 
 	// request vehicle specific PIDs
 	pollVehicleSpecific();
-	waitForExtendedResponse();
 
-	//publishGPSLocation();
+	// try again
+	pollVehicleSpecific();
+
+	// we tried twice, what did we end up with
 	publishValues();
+
 
 	String combo = String(EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE);
 	Particle.publish("CHECK", combo);
 	Blynk.virtualWrite(V49, "up");
 	// cooldown, let the car catchup
-	delay(10*1000);
+	delay(1*1000);
 	resetValues();
 }
 
@@ -643,30 +663,56 @@ void waitForExtendedResponse() {
 				message.id > OBD_CAN_REPLY_ID_MAX )	{
 			continue;
 		}
+
+		char* buf;
+		sprintf(buf, "{\"id\":%d,\"2\":%X,\"3\":%d,\"4\":%d}",
+						int(message.id),
+						message.data[2],
+						message.data[3],
+						message.data[4]);
+		// ext'd
+		if (message.data[0] == 0x03) {
+			Serial.printlnf("PID {\"id\":%d,\"2\":%X,\"3\":%d,\"4\":%d}",
+											message.id,
+											message.data[2],
+											message.data[3],
+											message.data[4]);
+		} else {
+			Serial.printlnf("VCL {\"id\":%d,\"2\":%X,\"3\":%X,\"4\":%d, \"5\":%d}",
+											message.id,
+											message.data[2],
+											message.data[3],
+											message.data[4],
+											message.data[5]);
+
+		}
+		Serial.flush();
+		//printString("UNK: %s\n", String(buf));
+
 		// if (idx > 9) {
 		// 	Particle.publish("FAIL", "overflowed queue");
 		// 	publishValue(queue, idx);
 		// 	return;
 		// }
 
-		Blynk.run();
-		char found[40];
-		sprintf(found, "ID: %X 2: %X 3: %X", int(message.id),
-						message.data[2], message.data[3]);
-		String str = String("FOUND");
-		str.concat(String(" "));
-		str.concat(String(found));
-		printString("%s", str);
-
 		// Ambient Temp
-		if (message.data[2] == 0x46) {
+		if (message.data[2] == 0x46 && AMBIENT_AIR_TEMPERATURE == -1) {
 			float ambientAirTemperature;
 			ambientAirTemperature = message.data[3] - 40;
 			AMBIENT_AIR_TEMPERATURE = ambientAirTemperature;
 			//queue[idx] = makePayload(V0, "TEMP", AMBIENT_AIR_TEMPERATURE);
 			//idx++;
 			continue;
+
 		}
+
+		if (message.data[2] == 0x0d && VEHICLE_SPEED == -1) {
+			float vehicleSpeed;
+			vehicleSpeed = (message.data[3]);
+			VEHICLE_SPEED = vehicleSpeed;
+			continue;
+		}
+
 
 		if (message.data[2] == 0x42) {
 			float controlModuleVoltageA;
@@ -708,6 +754,7 @@ void waitForExtendedResponse() {
 			//idx++;
 			continue;
 		}
+
 		// Charger AMP in
 		if (message.data[2] == 0x43 && message.data[3] == 0x69 ) {
 			float ampIn;
@@ -719,11 +766,17 @@ void waitForExtendedResponse() {
 		}
 
 		if (message.id > 0) {
-			// char buf[40];
-			// sprintf(buf, "{\"id\":%X,\"2\":%X,\"3\":%f,\"4\":%f}",
-			// 				message.id, message.data[2], message.data[3],
-			// 				message.data[4]);
-			// printString("UNMATCHED %s", buf);
+			char* buf;
+			sprintf(buf, "{\"id\":%d,\"2\":%X,\"3\":%d,\"4\":%d}",
+							int(message.id),
+							message.data[2],
+							message.data[3],
+							message.data[4]);
+			unmatched = buf;
+
+			printString("UNK: %s\n", buf);
+
+			continue;
 		}
 
 	}
@@ -755,88 +808,7 @@ void sendObdRequest() {
 
 	carloop.can().transmit(message);
 
-	obdLoopFunction = waitForObdResponse;
 	transitionTime = millis();
-}
-
-void waitForObdResponse() {
-	if (millis() - transitionTime >= 10) {
-		obdLoopFunction = delayUntilNextRequest;
-		transitionTime = millis();
-		return;
-	}
-	bool responseReceived = false;
-	String dump;
-	CANMessage message;
-	while (carloop.can().receive(message)) {
-		canMessageCount++;
-		if (message.id == 0x130) {
-			if (!byteArray8Equal(message.data, lastMessageData)) {
-				memcpy(lastMessageData, message.data, 8);
-			}
-		} else {
-			if (message.id >= OBD_CAN_REPLY_ID_MIN &&
-					message.id <= OBD_CAN_REPLY_ID_MAX &&
-					message.data[2] == pidsToRequest[pidIndex]) {
-				responseReceived = true;
-				data0 = message.data[0];
-				data1 = message.data[1];
-				data2 = message.data[2];
-				data3 = message.data[3];
-				data4 = message.data[4];
-				data5 = message.data[5];
-				data6 = message.data[6];
-				data7 = message.data[7];
-				return;
-			}
-			return;
-		}
-		return;
-	}
-}
-
-
-void delayUntilNextRequest() {
-	if (millis() - transitionTime >= 8) {
-		obdLoopFunction = sendObdRequest;
-		transitionTime = millis();
-	}
-}
-
-/*************** End: OBD Loop Functions ****************/
-
-
-void printValuesAtInterval() {
-	static const unsigned long interval = 500;
-	static unsigned long lastDisplay = 0;
-	if (millis() - lastDisplay < interval) {
-		return;
-	}
-	lastDisplay = millis();
-	printValues();
-}
-
-void printValues() {
-
-	/////////////////////////////
-	//PRINT VALUES FOR DEBUGING//
-	/////////////////////////////
-
-	//    Serial.print("Engine Load: ");
-	//    Serial.println(ENGINE_LOAD);
-
-
-}
-
-void publishValuesAtInterval() {
-	static const unsigned long interval2 = 10000;
-	static unsigned long lastDisplay2 = 0;
-	if(millis() - lastDisplay2 < interval2) {
-		return;
-	}
-	lastDisplay2 = millis();
-	//publishValues();
-	blynkValues();
 }
 
 char* fmtString(String str) {

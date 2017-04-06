@@ -1,10 +1,10 @@
-flash:
+cloudflash:
 	particle flash tricky-captain
 
 compile: clean
 	particle compile electron
 
-serialflash: compile
+flash: compile
 	particle flash --serial *.bin
 
 logs:
