@@ -554,7 +554,7 @@ void setup() {
 
 
 unsigned long lastCheck = 0;
-const auto CHECK_TO = 30;
+const auto CHECK_TO = 30 * 1000;
 void loop() {
 
 	carloop.update();
@@ -576,7 +576,7 @@ void loop() {
 	// Only heartbeat every 30seconds
 	if (millis() - lastCheck > CHECK_TO) {
 		String combo = String(EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE);
-		Particle.publish("CHECK", combo);
+		Particle.publish("WUT", combo);
 		Blynk.virtualWrite(V49, "up");
 		lastCheck = millis();
 	}
@@ -603,11 +603,11 @@ bool publishGPSLocation() {
 }
 
 void pollVehicleSpecific() {
-	requestSOC();
+	requestChargerCurrent();
 	waitForExtendedResponse();
 	requestChargerVolt();
 	waitForExtendedResponse();
-	requestChargerCurrent();
+	requestSOC();
 	waitForExtendedResponse();
 }
 
@@ -786,8 +786,8 @@ void waitForExtendedResponse() {
 		}
 
 	}
-	//publishValue(queue, idx);
-	//Particle.publish("FAIL", "no valid values found in wait fn");
+	// TODO: don't ask why, but more data comes through when I add this
+	delay(5);
 }
 
 /*************** Begin: OBD Loop Functions ****************/
@@ -837,130 +837,6 @@ void resetValues() {
 	CHARGER_VOLTS_IN = -1;
 	CHARGER_AMPS_IN = -1;
 	EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE = -1;
-}
-
-void blynkValues() {
-	Blynk.run();
-	String StringAMBIENT_AIR_TEMPERATURE                = String(AMBIENT_AIR_TEMPERATURE);
-	String StringCONTROL_MODULE_VOLTAGE                 = String(CONTROL_MODULE_VOLTAGE);
-	String StringFUEL_TANK_LEVEL_INPUT                = String(FUEL_TANK_LEVEL_INPUT);
-
-	// printString("  Ambient: %s", StringAMBIENT_AIR_TEMPERATURE);
-	// printString(" Mod Volt: %s", StringCONTROL_MODULE_VOLTAGE);
-	// printString(" Fuel LvL: %s", StringFUEL_TANK_LEVEL_INPUT);
-	// printString("  Amps In: %s", String(CHARGER_AMPS_IN));
-	// printString(" Volts In: %s", String(CHARGER_VOLTS_IN));
-	// printString("Ext'd SOC: %s", String(EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE));
-
-	// Particle.publish("PID TEMP     ", fmtString(StringAMBIENT_AIR_TEMPERATURE));
-	// Particle.publish("PID EXT'D SOC", fmtString(String(EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE)));
-	// Particle.publish("PID USABLESOC", fmtString(String((HYBRID_BATTERY_PACK_REMAINING_LIFE-54)/1.34)));
-
-	// if (AMBIENT_AIR_TEMPERATURE > -1) {
-	// 	Blynk.virtualWrite(V0, StringAMBIENT_AIR_TEMPERATURE);
-	// }
-	// if (CONTROL_MODULE_VOLTAGE > -1) {
-	// 	Blynk.virtualWrite(V2, StringCONTROL_MODULE_VOLTAGE);
-	// }
-	// if (FUEL_TANK_LEVEL_INPUT > -1) {
-	// 	Blynk.virtualWrite(V3, StringFUEL_TANK_LEVEL_INPUT);
-	// }
-	// if (CHARGER_AMPS_IN > -1) {
-	// 	Blynk.virtualWrite(V4, String(CHARGER_AMPS_IN));
-	// }
-	// if (CHARGER_VOLTS_IN > -1) {
-	// 	Blynk.virtualWrite(V5, String(CHARGER_VOLTS_IN));
-	// }
-	// if (EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE > -1) {
-	// 	Blynk.virtualWrite(V6, String(EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE));
-	// 	Blynk.virtualWrite(V7, "Usable(SOC)", (HYBRID_BATTERY_PACK_REMAINING_LIFE-54)/1.34);
-	// }
-}
-
-///////////////////////////////////////////////////
-//FUNCTION TO SEND DATA TO BYNK FOR VISUALIZATION//
-//THESE PARAMETERS ARE HERE AS AN EXAMPLE AND ARE//
-//AVAILABLE ON MY 2016 MIATA///////////////////////
-
-void oldBlynkValues() {
-	//TODO: ONLY SEND DATA WHEN THE ENGINE IS ON
-	Blynk.run();
-	String StringMIL_STATUS                             = String(MIL_STATUS);
-	String StringFUEL_SYSTEM_STATUS                     = String(FUEL_SYSTEM_STATUS);
-	String StringENGINE_LOAD                            = String(ENGINE_LOAD);
-	String StringENGINE_COOLANT_TEMPERATURE             = String(ENGINE_COOLANT_TEMPERATURE);
-	String StringSHORT_TERM_FUEL_TRIM_BANK_1            = String(SHORT_TERM_FUEL_TRIM_BANK_1);
-	String StringLONG_TERM_FUEL_TRIM_BANK_1             = String(LONG_TERM_FUEL_TRIM_BANK_1);
-	String StringINTAKE_MANIFOLD_PRESSURE               = String(INTAKE_MANIFOLD_PRESSURE);
-	String StringENGINE_RPM                             = String(ENGINE_RPM);
-	String StringVEHICLE_SPEED                          = String(VEHICLE_SPEED);
-	String StringTIMING_ADVANCE                         = String(TIMING_ADVANCE);
-	String StringINTAKE_AIR_TEMPERATURE                 = String(INTAKE_AIR_TEMPERATURE);
-	String StringMAF_AIR_FLOW_RATE                      = String(MAF_AIR_FLOW_RATE);
-	String StringTHROTTLE                               = String(THROTTLE);
-	String StringO2_V_6                                 = String(O2_V_6);
-	String StringO2_T_6                                 = String(O2_T_6);
-	String StringDISTANCE_TRAVELED_WITH_MIL_ON          = String(DISTANCE_TRAVELED_WITH_MIL_ON);
-	String StringCOMMANDED_EVAPORATIVE_PURGE            = String(COMMANDED_EVAPORATIVE_PURGE);
-	String StringFUEL_TANK_LEVEL_INPUT                  = String(FUEL_TANK_LEVEL_INPUT);
-	String StringWARM_UPS_SINCE_CODES_CLEARED           = String(WARM_UPS_SINCE_CODES_CLEARED);
-	String StringDISTANCE_TRAVELED_SINCE_CODES_CLEARED  = String(DISTANCE_TRAVELED_SINCE_CODES_CLEARED);
-	String StringEVAPORATOR_SYSTEM_PRESSURE             = String(EVAPORATOR_SYSTEM_PRESSURE);
-	String StringABSOLUTE_BAROMETRIC_PRESSURE           = String(ABSOLUTE_BAROMETRIC_PRESSURE);
-	String StringO2_F_A_E_R_C_1_FUEL                    = String(O2_F_A_E_R_C_1_FUEL);
-	String StringCATALYST_TEMPERATURE_BANK1_SENSOR1     = String(CATALYST_TEMPERATURE_BANK1_SENSOR1);
-	String StringCONTROL_MODULE_VOLTAGE                 = String(CONTROL_MODULE_VOLTAGE);
-	String StringABSOLUTE_LOAD_VALUE                    = String(ABSOLUTE_LOAD_VALUE);
-	String StringFUEL_AIR_COMMANDED_EQUIV_RATIO         = String(FUEL_AIR_COMMANDED_EQUIV_RATIO);
-	String StringRELATIVE_THROTTLE_POSITION             = String(RELATIVE_THROTTLE_POSITION);
-	String StringAMBIENT_AIR_TEMPERATURE                = String(AMBIENT_AIR_TEMPERATURE);
-	String StringABSOLUTE_THROTTLE_B                    = String(ABSOLUTE_THROTTLE_B);
-	String StringACCELERATOR_PEDAL_POSITION_D           = String(ACCELERATOR_PEDAL_POSITION_D);
-	String StringACCELERATOR_PEDAL_POSITION_E           = String(ACCELERATOR_PEDAL_POSITION_E);
-	String StringFUEL_TYPE                              = String(FUEL_TYPE);
-	String StringFUEL_RAIL_ABSOLUTE_PRESSURE            = String(FUEL_RAIL_ABSOLUTE_PRESSURE);
-	String StringHYBRID_BATTERY_PACK_REMAINING_LIFE     = String(HYBRID_BATTERY_PACK_REMAINING_LIFE);
-
-	////////////////////////////
-	//PUBLISH STRINGS TO BLYNK//
-	////////////////////////////
-
-	return;
-	Blynk.virtualWrite(V0, StringMIL_STATUS);
-	Blynk.virtualWrite(V1, StringFUEL_SYSTEM_STATUS);
-	Blynk.virtualWrite(V2, StringENGINE_LOAD);
-	Blynk.virtualWrite(V3, StringENGINE_COOLANT_TEMPERATURE);
-	Blynk.virtualWrite(V4, StringSHORT_TERM_FUEL_TRIM_BANK_1);
-	Blynk.virtualWrite(V5, StringLONG_TERM_FUEL_TRIM_BANK_1);
-	Blynk.virtualWrite(V6, StringINTAKE_MANIFOLD_PRESSURE);
-	Blynk.virtualWrite(V7, StringENGINE_RPM);
-	Blynk.virtualWrite(V8, StringVEHICLE_SPEED);
-	Blynk.virtualWrite(V9, StringTIMING_ADVANCE);
-	Blynk.virtualWrite(V10, StringINTAKE_AIR_TEMPERATURE);
-	Blynk.virtualWrite(V11, StringMAF_AIR_FLOW_RATE);
-	Blynk.virtualWrite(V12, StringTHROTTLE);
-	Blynk.virtualWrite(V13, StringO2_V_6);
-	Blynk.virtualWrite(V14, StringO2_T_6);
-	Blynk.virtualWrite(V15, StringDISTANCE_TRAVELED_WITH_MIL_ON);
-	Blynk.virtualWrite(V16, StringCOMMANDED_EVAPORATIVE_PURGE);
-	Blynk.virtualWrite(V17, StringFUEL_TANK_LEVEL_INPUT);
-	Blynk.virtualWrite(V18, StringWARM_UPS_SINCE_CODES_CLEARED);
-	Blynk.virtualWrite(V19, StringDISTANCE_TRAVELED_SINCE_CODES_CLEARED);
-	Blynk.virtualWrite(V20, StringEVAPORATOR_SYSTEM_PRESSURE);
-	Blynk.virtualWrite(V21, StringABSOLUTE_BAROMETRIC_PRESSURE);
-	Blynk.virtualWrite(V22, StringO2_F_A_E_R_C_1_FUEL);
-	Blynk.virtualWrite(V23, StringCATALYST_TEMPERATURE_BANK1_SENSOR1);
-	Blynk.virtualWrite(V24, StringCONTROL_MODULE_VOLTAGE);
-	Blynk.virtualWrite(V25, StringABSOLUTE_LOAD_VALUE);
-	Blynk.virtualWrite(V26, StringFUEL_AIR_COMMANDED_EQUIV_RATIO);
-	Blynk.virtualWrite(V27, StringRELATIVE_THROTTLE_POSITION);
-	Blynk.virtualWrite(V28, StringAMBIENT_AIR_TEMPERATURE);
-	Blynk.virtualWrite(V29, StringABSOLUTE_THROTTLE_B);
-	Blynk.virtualWrite(V30, StringACCELERATOR_PEDAL_POSITION_D);
-	Blynk.virtualWrite(V31, StringACCELERATOR_PEDAL_POSITION_E);
-	Blynk.virtualWrite(V32, StringFUEL_TYPE);
-	Blynk.virtualWrite(V33, StringFUEL_RAIL_ABSOLUTE_PRESSURE);
-
 }
 
 //////////////////////////////////////
