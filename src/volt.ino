@@ -185,25 +185,34 @@ float ENGINE_COOLANT_TEMPERATURE;
 float INTAKE_AIR_TEMPERATURE_SENSOR;
 
 // Interesting values
-float VEHICLE_SPEED = -1;
-float AMBIENT_AIR_TEMPERATURE = -1;
-float CONTROL_MODULE_VOLTAGE = -1;
-float FUEL_TANK_LEVEL_INPUT = -1;
+float VEHICLE_SPEED;
+float AMBIENT_AIR_TEMPERATURE;
+float CONTROL_MODULE_VOLTAGE;
+float FUEL_TANK_LEVEL_INPUT;
 
 
 // Chevy (Volt) specific PIDs
-float CHARGER_AMPS_IN = -1;
-float CHARGER_VOLTS_IN = -1;
-float EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE = -1;
+float CHARGER_VOLTS_IN;
+float CHARGER_AMPS_IN;
+float EV_MILES_THIS_CYCLE;
+float EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE;
+float HV_DISCHARGE_AMPS;
+float HV_VOLTS;
 
 struct MSG {
+	// Interesting values
 	float VEHICLE_SPEED;
 	float AMBIENT_AIR_TEMPERATURE;
 	float CONTROL_MODULE_VOLTAGE;
 	float FUEL_TANK_LEVEL_INPUT;
-	float CHARGER_AMPS_IN;
+
+	// Chevy (Volt) specific PIDs
 	float CHARGER_VOLTS_IN;
+	float CHARGER_AMPS_IN;
 	float EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE;
+	float HV_DISCHARGE_AMPS;
+	float HV_VOLTS;
+	float EV_MILES_THIS_CYCLE;
 };
 
 struct MSG GCP;
@@ -517,41 +526,57 @@ char* unmatched;
 
 void publishValues() {
 	Blynk.run();
-	if (AMBIENT_AIR_TEMPERATURE > -1) {
+	if (AMBIENT_AIR_TEMPERATURE != NAN) {
 		pushValue(V0, "TEMP", AMBIENT_AIR_TEMPERATURE);
 		GCP.AMBIENT_AIR_TEMPERATURE = AMBIENT_AIR_TEMPERATURE;
 	}
 
-	if (CONTROL_MODULE_VOLTAGE > -1) {
+	if (CONTROL_MODULE_VOLTAGE != NAN) {
 		pushValue(V1, "CMV", CONTROL_MODULE_VOLTAGE);
 		GCP.CONTROL_MODULE_VOLTAGE = CONTROL_MODULE_VOLTAGE;
 	}
 
-	if (FUEL_TANK_LEVEL_INPUT > -1) {
+	if (FUEL_TANK_LEVEL_INPUT != NAN) {
 		pushValue(V2, "FUEL_TANK", FUEL_TANK_LEVEL_INPUT);
-		GCP.FUEL_TANK_LEVEL_INPUT;
+		GCP.FUEL_TANK_LEVEL_INPUT = FUEL_TANK_LEVEL_INPUT;
 	}
 
 	// Battery is reporting as 0... a lot
 	if (EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE > 0) {
 		pushValue(V3, "BATTERY_PCT", EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE);
 		GCP.EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE = EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE;
-	}
+ 	}
 
-	if (CHARGER_VOLTS_IN > -1) {
+	if (CHARGER_VOLTS_IN != NAN) {
 		pushValue(V4, "CHARGER_VOLTS_IN", CHARGER_VOLTS_IN);
 		GCP.CHARGER_VOLTS_IN = CHARGER_VOLTS_IN;
-	}
+ 	}
 
-	if (CHARGER_AMPS_IN > -1) {
+	if (CHARGER_AMPS_IN != NAN) {
 		pushValue(V5, "CHARGER_AMPS_IN", CHARGER_AMPS_IN);
 		GCP.CHARGER_AMPS_IN = CHARGER_AMPS_IN;
-	}
+ 	}
 
-	if (VEHICLE_SPEED > -1) {
+	if (HV_DISCHARGE_AMPS != NAN) {
+		pushValue(V6, "HV_DISCHARGE_AMPS", HV_DISCHARGE_AMPS);
+		GCP.HV_DISCHARGE_AMPS = HV_DISCHARGE_AMPS;
+ 	}
+
+	if (HV_VOLTS != NAN) {
+		pushValue(V7, "HV_VOLTS", HV_VOLTS);
+		GCP.HV_VOLTS = HV_VOLTS;
+ 	}
+
+	if (EV_MILES_THIS_CYCLE != NAN) {
+		pushValue(V8, "EV_MILES_THIS_CYCLE HV_VOLTS", EV_MILES_THIS_CYCLE);
+		GCP.EV_MILES_THIS_CYCLE = EV_MILES_THIS_CYCLE;
+ 	}
+
+	// random stats
+	if (VEHICLE_SPEED != NAN) {
 		pushValue(V20, "VEHICLE_SPEED", VEHICLE_SPEED);
 		GCP.VEHICLE_SPEED = VEHICLE_SPEED;
-	}
+ 	}
 
 	if (unmatched[0] != '\0') {
 		Particle.publish("UNK", String(unmatched));
@@ -599,25 +624,31 @@ void loop() {
 		Particle.publish("WUT", combo);
 		Blynk.virtualWrite(V49, "up");
 		lastCheck = millis();
-		String publish =
-			String::format("{\"VEHICLE_SPEED\":%f,\"AMBIENT_AIR_TEMPERATURE\":%f,\"CONTROL_MODULE_VOLTAGE\":%f,\"FUEL_TANK_LEVEL_INPUT\":%f,\"CHARGE_AMPS_IN\":%f,\"CHARGER_VOLTS_IN\":%f,\"EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE\":%f}",
+		String publish = String::format("{"
+										 "\"vehicle_speed\":%f,"
+										 "\"ambient_air_temperature\":%f,"
+										 "\"control_module_voltage\":%f,"
+										 "\"fuel_tank_level_input\":%f,"
+										 "\"charger_amps_in\":%f,"
+										 "\"charger_volts_in\":%f,"
+										 "\"extended_hybrid_battery_pack_remaining_life\":%f,"
+										 "\"hv_discharge_amps\":%f,"
+										 "\"hv_volts\":%f,"
+										 "\"ev_miles_this_cycle\":%f"
+										 "}",
 										 GCP.VEHICLE_SPEED,
 										 GCP.AMBIENT_AIR_TEMPERATURE,
 										 GCP.CONTROL_MODULE_VOLTAGE,
 										 GCP.FUEL_TANK_LEVEL_INPUT,
 										 GCP.CHARGER_AMPS_IN,
 										 GCP.CHARGER_VOLTS_IN,
-										 GCP.EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE);
+										 GCP.EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE,
+										 GCP.HV_DISCHARGE_AMPS,
+										 GCP.HV_VOLTS,
+										 GCP.EV_MILES_THIS_CYCLE);
 
 		Particle.publish("CAR", publish);
-		// Reset GCP
-		GCP.VEHICLE_SPEED = -1;
-		GCP.AMBIENT_AIR_TEMPERATURE = -1;
-		GCP.CONTROL_MODULE_VOLTAGE = -1;
-		GCP.FUEL_TANK_LEVEL_INPUT = -1;
-		GCP.CHARGER_AMPS_IN = -1;
-		GCP.CHARGER_VOLTS_IN = -1;
-		GCP.EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE = -1;
+		resetCar();
 	}
 
 	// cooldown, let the car catchup
@@ -649,6 +680,56 @@ void pollVehicleSpecific() {
 	waitForExtendedResponse();
 	requestSOC();
 	waitForExtendedResponse();
+	requestHDA();
+	waitForExtendedResponse();
+	requestHV();
+	waitForExtendedResponse();
+	requestMC();
+	waitForExtendedResponse();
+}
+
+void requestHDA() {
+	CANMessage message;
+  // A CAN message to request the vehicle speed
+  message.id = 0x7E1;
+  message.len = 8;
+
+  // Data is an OBD request: get current value of the vehicle speed PID
+  message.data[0] = 0x03; // 2 byte request
+  message.data[1] = 0x22;
+	message.data[2] = 0x24;
+	message.data[3] = 0x14;
+  // Send the message on the bus!
+  carloop.can().transmit(message);
+}
+
+void requestHV() {
+	CANMessage message;
+  // A CAN message to request the vehicle speed
+  message.id = 0x7E1;
+  message.len = 8;
+
+  // Data is an OBD request: get current value of the vehicle speed PID
+  message.data[0] = 0x03; // 2 byte request
+  message.data[1] = 0x22;
+	message.data[2] = 0x24;
+	message.data[3] = 0x29;
+  // Send the message on the bus!
+  carloop.can().transmit(message);
+}
+void requestMC() {
+	CANMessage message;
+  // A CAN message to request the vehicle speed
+  message.id = 0x7E1;
+  message.len = 8;
+
+  // Data is an OBD request: get current value of the vehicle speed PID
+  message.data[0] = 0x03; // 2 byte request
+  message.data[1] = 0x22;
+	message.data[2] = 0x24;
+	message.data[3] = 0x87;
+  // Send the message on the bus!
+  carloop.can().transmit(message);
 }
 
 void requestSOC() {
@@ -760,14 +841,13 @@ void waitForExtendedResponse() {
 		}
 
 
-		if (message.data[2] == 0x42) {
+		// 220042
+		if (message.data[2] == 0x00 && message.data[3] == 0x42) {
 			float controlModuleVoltageA;
 			float controlModuleVoltageB;
-			controlModuleVoltageA = message.data[3];
-			controlModuleVoltageB = message.data[4];
+			controlModuleVoltageA = message.data[4];
+			controlModuleVoltageB = message.data[5];
 			CONTROL_MODULE_VOLTAGE = (256 * controlModuleVoltageA + controlModuleVoltageB)/1000;
-			//queue[idx] = makePayload(V1, "CMV", CONTROL_MODULE_VOLTAGE);
-			//idx++;
 			continue;
 		}
 
@@ -775,8 +855,6 @@ void waitForExtendedResponse() {
 			float fuelTankLevelInput;
 			fuelTankLevelInput = message.data[3]/2.55;
 			FUEL_TANK_LEVEL_INPUT = fuelTankLevelInput;
-			//queue[idx] = makePayload(V2, "FUEL_TANK", FUEL_TANK_LEVEL_INPUT);
-			//idx++;
 			continue;
 		}
 
@@ -785,8 +863,6 @@ void waitForExtendedResponse() {
 			float soc;
 			soc = message.data[4];
 			EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE = soc/2.55;
-			//queue[idx] = makePayload(V3, "BATTERY_PCT", EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE);
-			//idx++;
 			continue;
 		}
 
@@ -796,8 +872,6 @@ void waitForExtendedResponse() {
 			float voltIn;
 			voltIn = message.data[4];
 			CHARGER_VOLTS_IN = voltIn * 2;
-			//queue[idx] = makePayload(V4, "CHARGER_VOLTS_IN", CHARGER_VOLTS_IN);
-			//idx++;
 			continue;
 		}
 
@@ -806,10 +880,43 @@ void waitForExtendedResponse() {
 			float ampIn;
 			ampIn = message.data[4];
 			CHARGER_AMPS_IN = ampIn * 0.2;
-			//queue[idx] = makePayload(V5, "CHARGER_AMPS_IN", CHARGER_AMPS_IN);
-			//idx++;
 			continue;
 		}
+
+		// HV DISCHARGE AMPS 222414
+		// (Signed(A)*256+b)/20
+		if (message.data[2] == 0x24 && message.data[3] == 0x14) {
+			float discharge;
+			float add;
+			discharge = message.data[4];
+			add = message.data[5];
+
+			HV_DISCHARGE_AMPS = ((discharge*256)+add)/20;
+			continue;
+		}
+
+		// HV_VOLTS 222429
+		// (Signed(A)*256+b)/64
+		if (message.data[2] == 0x24 && message.data[3] == 0x29) {
+			float volts;
+			float add;
+			volts = message.data[4];
+			add = message.data[5];
+			HV_DISCHARGE_AMPS = ((volts*256)+add)/64;
+			continue;
+		}
+
+		// EV_MILES_THIS_CYCLE
+		// 222487	((Signed(A)*256+b))/160.9
+		if (message.data[2] == 0x24 && message.data[3] == 0x87) {
+			float miles;
+			float add;
+			miles = message.data[4];
+			add = message.data[5];
+			EV_MILES_THIS_CYCLE = ((miles*256)+add)/160.9;
+			continue;
+		}
+
 
 		if (message.id > 0) {
 			char* buf;
@@ -870,14 +977,18 @@ void printString(const char* fmt, String str) {
 	delete [] cstr;
 }
 
+void resetCar() {
+	memset(&GCP, 0, sizeof(MSG));
+}
+
 void resetValues() {
-	AMBIENT_AIR_TEMPERATURE = -1;
-	CONTROL_MODULE_VOLTAGE = -1;
-	FUEL_TANK_LEVEL_INPUT = -1;
-	CHARGER_VOLTS_IN = -1;
-	CHARGER_AMPS_IN = -1;
-	EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE = -1;
-	VEHICLE_SPEED = -1;
+	AMBIENT_AIR_TEMPERATURE = NAN;
+	CONTROL_MODULE_VOLTAGE = NAN;
+	FUEL_TANK_LEVEL_INPUT = NAN;
+	CHARGER_VOLTS_IN = NAN;
+	CHARGER_AMPS_IN = NAN;
+	EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE = NAN;
+	VEHICLE_SPEED = NAN;
 }
 
 //////////////////////////////////////
