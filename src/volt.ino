@@ -535,8 +535,8 @@ void publishValues() {
 	if (EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE != NAN) {
 		pushValue(V3, "HYBRID_SOC", EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE);
 		// Battery is reporting as 0... a lot. DO not report these values
-		if (EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE > 0.01) {
-			GCP.EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE = EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE;
+		if (EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE > 1) {
+			//GCP.EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE = EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE;
 		}
  	}
 
@@ -613,8 +613,6 @@ void loop() {
 
 	// Only heartbeat every 30seconds
 	if (millis() - lastCheck > CHECK_TO) {
-		String combo = String(EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE);
-		Particle.publish("WUT", combo);
 		Blynk.virtualWrite(V49, "up");
 		lastCheck = millis();
 		String publish = String::format("{"
