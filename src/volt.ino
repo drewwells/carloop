@@ -561,7 +561,7 @@ void publishValues() {
  	}
 
 	if (EV_MILES_THIS_CYCLE != NAN) {
-		pushValue(V8, "EV_MILES_THIS_CYCLE HV_VOLTS", EV_MILES_THIS_CYCLE);
+		pushValue(V8, "EV_MILES_THIS_CYCLE", EV_MILES_THIS_CYCLE);
 		GCP.EV_MILES_THIS_CYCLE = EV_MILES_THIS_CYCLE;
  	}
 
@@ -617,15 +617,15 @@ void loop() {
 		lastCheck = millis();
 		String publish = String::format("{"
 										 "\"vehicle_speed\":%f,"
-										 "\"ambient_air_temperature\":%f,"
-										 "\"control_module_voltage\":%f,"
-										 "\"fuel_tank_level_input\":%f,"
-										 "\"charger_amps_in\":%f,"
-										 "\"charger_volts_in\":%f,"
-										 "\"extended_hybrid_battery_pack_remaining_life\":%f,"
-										 "\"hv_discharge_amps\":%f,"
+										 "\"temp\":%f,"
+										 "\"cmv\":%f,"
+										 "\"fuel_tank\":%f,"
+										 "\"amps_in\":%f,"
+										 "\"volts_in\":%f,"
+										 "\"soc\":%f,"
+										 "\"hv_amps\":%f,"
 										 "\"hv_volts\":%f,"
-										 "\"ev_miles_this_cycle\":%f"
+										 "\"ev_miles_cycle\":%f"
 										 "}",
 										 GCP.VEHICLE_SPEED,
 										 GCP.AMBIENT_AIR_TEMPERATURE,
@@ -638,6 +638,7 @@ void loop() {
 										 GCP.HV_VOLTS,
 										 GCP.EV_MILES_THIS_CYCLE);
 
+		publish.replace("nan", "-10000");
 		Particle.publish("CAR", publish);
 		resetCar();
 	}
