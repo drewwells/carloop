@@ -500,28 +500,6 @@ struct Payload makePayload(int vpin, const char* partKey, float data) {
 	return *p;
 }
 
-void publishValue(struct Payload queue[], int max) {
-	return;
-	for (int i = 0; i < max; i++) {
-		struct Payload p;
-		p = queue[i];
-		//void publishValue(int vpin, const char* partKey, float data) {
-		if (p.data > -1) {
-			String sData = String(p.data);
-			String msg = String(String(p.partKey) + " ");
-			msg.concat(String(p.data, 2));
-			printString("SEND %s", msg);
-			Blynk.virtualWrite(p.vpin, sData);
-			bool sent = Particle.publish(p.partKey, p.data);
-			if (!sent) {
-				printString("failed to publish %s", p.partKey);
-			} else {
-				printString("published %s", p.partKey);
-			}
-		}
-	}
-}
-
 void pushValue(int vpin, const char* key, float data) {
 	String sData = String(data);
 	Particle.publish(key, sData);
@@ -555,9 +533,9 @@ void publishValues() {
 	}
 
 	if (EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE != NAN) {
-		pushValue(V3, "BATTERY_PCT", EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE);
+		pushValue(V3, "HYBRID_SOC", EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE);
 		// Battery is reporting as 0... a lot. DO not report these values
-		if (EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE > 0) {
+		if (EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE > 0.01) {
 			GCP.EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE = EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE;
 		}
  	}
@@ -880,7 +858,6 @@ void waitForExtendedResponse() {
 			EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE = soc/2.55;
 			continue;
 		}
-
 
 		// Charger Volts in
 		if (message.data[2] == 0x43 && message.data[3] == 0x68 ) {
