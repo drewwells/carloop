@@ -197,15 +197,16 @@ float EV_MILES_THIS_CYCLE;
 float EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE;
 float HV_DISCHARGE_AMPS;
 float HV_VOLTS;
+float CHARGER_POWER;
 
 void resetValues() {
 	AMBIENT_AIR_TEMPERATURE = NAN;
 	CONTROL_MODULE_VOLTAGE = NAN;
 	FUEL_TANK_LEVEL_INPUT = NAN;
 	VEHICLE_SPEED = NAN;
-
 	CHARGER_VOLTS_IN = NAN;
 	CHARGER_AMPS_IN = NAN;
+	CHARGER_POWER = NAN;
 	EV_MILES_THIS_CYCLE = NAN;
 	EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE = NAN;
 	HV_DISCHARGE_AMPS = NAN;
@@ -220,8 +221,9 @@ struct MSG {
 	float FUEL_TANK_LEVEL_INPUT;
 
 	// Chevy (Volt) specific PIDs
-	float CHARGER_VOLTS_IN;
 	float CHARGER_AMPS_IN;
+	float CHARGER_POWER;
+	float CHARGER_VOLTS_IN;
 	float EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE;
 	float HV_DISCHARGE_AMPS;
 	float HV_VOLTS;
@@ -560,6 +562,11 @@ void publishValues() {
 		GCP.HV_VOLTS = HV_VOLTS;
  	}
 
+	if (CHARGER_POWER != NAN) {
+		pushValue(V7, "CHARGER_POWER", CHARGER_POWER);
+		GCP.CHARGER_POWER = CHARGER_POWER;
+ 	}
+
 	if (EV_MILES_THIS_CYCLE != NAN) {
 		pushValue(V8, "EV_MILES_THIS_CYCLE", EV_MILES_THIS_CYCLE);
 		GCP.EV_MILES_THIS_CYCLE = EV_MILES_THIS_CYCLE;
@@ -615,16 +622,15 @@ void loop() {
 	if (millis() - lastCheck > CHECK_TO) {
 		Blynk.virtualWrite(V49, "up");
 		lastCheck = millis();
-		String publish = String::format("{"
+		String car = String::format("{"
 										 "\"vehicle_speed\":%f,"
 										 "\"temp\":%f,"
 										 "\"cmv\":%f,"
 										 "\"fuel_tank\":%f,"
 										 "\"amps_in\":%f,"
 										 "\"volts_in\":%f,"
+										 "\"power_in\":$f,"
 										 "\"soc\":%f,"
-										 "\"hv_amps\":%f,"
-										 "\"hv_volts\":%f,"
 										 "\"ev_miles_cycle\":%f"
 										 "}",
 										 GCP.VEHICLE_SPEED,
@@ -633,13 +639,22 @@ void loop() {
 										 GCP.FUEL_TANK_LEVEL_INPUT,
 										 GCP.CHARGER_AMPS_IN,
 										 GCP.CHARGER_VOLTS_IN,
+										 GCP.CHARGER_POWER,
 										 GCP.EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE,
-										 GCP.HV_DISCHARGE_AMPS,
-										 GCP.HV_VOLTS,
 										 GCP.EV_MILES_THIS_CYCLE);
 
-		publish.replace("nan", "-10000");
-		Particle.publish("CAR", publish);
+		car.replace("nan", "-10000");
+
+		String car2 =
+			String::format("{"
+										 "\"hv_amps\":%f,"
+										 "\"hv_volts\":%f"
+										 "}",
+										 GCP.HV_DISCHARGE_AMPS,
+										 GCP.HV_VOLTS);
+		car2.replace("nan", "-10000");
+		Particle.publish("CAR", car);
+		Particle.publish("CAR2", car2);
 		resetCar();
 	}
 
@@ -680,6 +695,8 @@ CANMessage makeCan(uint32_t id, uint8_t len, uint8_t data[8]) {
 void pollVehicleSpecific() {
 	requestChargerCurrent();
 	waitForExtendedResponse();
+	requestChargerPower();
+	waitForExtendedResponse();
 	requestChargerVolt();
 	waitForExtendedResponse();
 	requestSOC();
@@ -695,6 +712,13 @@ void pollVehicleSpecific() {
 void requestDischargeAmps() {
 	uint8_t data[8] = {0x03, 0x22, 0x24, 0x14};
 	CANMessage message = makeCan(0x7E1, 8, data);
+  carloop.can().transmit(message);
+}
+
+// charger power
+void requestChargerPower() {
+	uint8_t data[8] = {0x03,0x22,0x43,0x73};
+	CANMessage message = makeCan(0x7E4, 8, data);
   carloop.can().transmit(message);
 }
 
@@ -835,6 +859,17 @@ void waitForExtendedResponse() {
 			add = message.data[5];
 
 			HV_DISCHARGE_AMPS = ((discharge*256)+add)/20;
+			continue;
+		}
+
+		// Charger Power
+		// (Signed(A)*256+b)
+		if (message.data[2] == 0x43 && message.data[3] == 0x73) {
+			float pow;
+			float add;
+			pow = message.data[4];
+			add = message.data[5];
+			CHARGER_POWER = (pow*256)+add;
 			continue;
 		}
 
