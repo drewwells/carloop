@@ -644,7 +644,7 @@ void loop() {
 	}
 
 	// cooldown, let the car catchup
-	delay(3*1000);
+	delay(5*1000);
 	resetValues();
 }
 
@@ -695,17 +695,22 @@ void requestHDA() {
   carloop.can().transmit(message);
 }
 
-void requestHV() {
-	CANMessage message;
-  // A CAN message to request the vehicle speed
-  message.id = 0x7E1;
-  message.len = 8;
+CANMessage makeCan(uint32_t id, uint8_t len, uint8_t data[8]) {
+	CANMessage msg;
+	msg.id = id;
+	msg.len = len;
+	size_t size;
+	size = sizeof(data);
+	//msg.data = malloc(sizeof(uint8_t) * size);
 
-  // Data is an OBD request: get current value of the vehicle speed PID
-  message.data[0] = 0x03; // 2 byte request
-  message.data[1] = 0x22;
-	message.data[2] = 0x24;
-	message.data[3] = 0x29;
+	memcpy(msg.data, data, sizeof(uint8_t) * size);
+	return msg;
+}
+
+// HV volts
+void requestHV() {
+	uint8_t data[8] = {0x03,0x22,0x24,0x29};
+	CANMessage msg = makeCan(message.id, 8, data);
   // Send the message on the bus!
   carloop.can().transmit(message);
 }
