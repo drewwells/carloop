@@ -806,26 +806,16 @@ void waitForExtendedResponse() {
 
 		}
 		Serial.flush();
-		//printString("UNK: %s\n", String(buf));
-
-		// if (idx > 9) {
-		// 	Particle.publish("FAIL", "overflowed queue");
-		// 	publishValue(queue, idx);
-		// 	return;
-		// }
 
 		// Ambient Temp
-		if (message.data[2] == 0x46 && AMBIENT_AIR_TEMPERATURE == -1) {
+		if (message.data[2] == 0x46) {
 			float ambientAirTemperature;
 			ambientAirTemperature = message.data[3] - 40;
 			AMBIENT_AIR_TEMPERATURE = ambientAirTemperature;
-			//queue[idx] = makePayload(V0, "TEMP", AMBIENT_AIR_TEMPERATURE);
-			//idx++;
 			continue;
-
 		}
 
-		if (message.data[2] == 0x0d && VEHICLE_SPEED == -1) {
+		if (message.data[2] == 0x0d) {
 			float vehicleSpeed;
 			vehicleSpeed = (message.data[3]);
 			VEHICLE_SPEED = vehicleSpeed;
@@ -911,21 +901,22 @@ void waitForExtendedResponse() {
 		}
 
 
-		if (message.id > 0) {
-			char* buf;
-			sprintf(buf, "{\"id\":%d,\"2\":%X,\"3\":%d,\"4\":%d}",
-							int(message.id),
-							message.data[2],
-							message.data[3],
-							message.data[4]);
-			unmatched = buf;
+	// 	if (message.id > 0) {
+	// 		char* buf;
+	// 		sprintf(buf, "{\"id\":%d,\"2\":%X,\"3\":%d,\"4\":%d}",
+	// 						int(message.id),
+	// 						message.data[2],
+	// 						message.data[3],
+	// 						message.data[4]);
+	// 		unmatched = buf;
 
-			printString("UNK: %s\n", buf);
+	// 		printString("UNK: %s\n", buf);
 
-			continue;
-		}
+	// 		continue;
+	// 	}
 
 	}
+
 	// TODO: don't ask why, but more data comes through when I add this
 	delay(5);
 }
