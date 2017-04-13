@@ -869,7 +869,10 @@ void waitForExtendedResponse() {
 			float add;
 			pow = message.data[4];
 			add = message.data[5];
-			CHARGER_POWER = (pow*256)+add;
+			// often reported as 0
+			if (pow > 0) {
+				CHARGER_POWER = (pow*256)+add;
+			}
 			continue;
 		}
 
