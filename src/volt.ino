@@ -665,36 +665,6 @@ bool publishGPSLocation() {
 	return true;
 }
 
-void pollVehicleSpecific() {
-	requestChargerCurrent();
-	waitForExtendedResponse();
-	requestChargerVolt();
-	waitForExtendedResponse();
-	requestSOC();
-	waitForExtendedResponse();
-	requestHDA();
-	waitForExtendedResponse();
-	requestHV();
-	waitForExtendedResponse();
-	requestMC();
-	waitForExtendedResponse();
-}
-
-void requestHDA() {
-	CANMessage message;
-  // A CAN message to request the vehicle speed
-  message.id = 0x7E1;
-  message.len = 8;
-
-  // Data is an OBD request: get current value of the vehicle speed PID
-  message.data[0] = 0x03; // 2 byte request
-  message.data[1] = 0x22;
-	message.data[2] = 0x24;
-	message.data[3] = 0x14;
-  // Send the message on the bus!
-  carloop.can().transmit(message);
-}
-
 CANMessage makeCan(uint32_t id, uint8_t len, uint8_t data[8]) {
 	CANMessage msg;
 	msg.id = id;
@@ -707,70 +677,55 @@ CANMessage makeCan(uint32_t id, uint8_t len, uint8_t data[8]) {
 	return msg;
 }
 
+void pollVehicleSpecific() {
+	requestChargerCurrent();
+	waitForExtendedResponse();
+	requestChargerVolt();
+	waitForExtendedResponse();
+	requestSOC();
+	waitForExtendedResponse();
+	requestDischargeAmps();
+	waitForExtendedResponse();
+	requestHV();
+	waitForExtendedResponse();
+	requestMiles();
+	waitForExtendedResponse();
+}
+
+void requestDischargeAmps() {
+	uint8_t data[8] = {0x03, 0x22, 0x24, 0x14};
+	CANMessage message = makeCan(0x7E1, 8, data);
+  carloop.can().transmit(message);
+}
+
 // HV volts
 void requestHV() {
 	uint8_t data[8] = {0x03,0x22,0x24,0x29};
-	CANMessage msg = makeCan(message.id, 8, data);
-  // Send the message on the bus!
+	CANMessage message = makeCan(0x7E1, 8, data);
   carloop.can().transmit(message);
 }
-void requestMC() {
-	CANMessage message;
-  // A CAN message to request the vehicle speed
-  message.id = 0x7E1;
-  message.len = 8;
 
-  // Data is an OBD request: get current value of the vehicle speed PID
-  message.data[0] = 0x03; // 2 byte request
-  message.data[1] = 0x22;
-	message.data[2] = 0x24;
-	message.data[3] = 0x87;
-  // Send the message on the bus!
+void requestMiles() {
+	uint8_t data[8] = {0x03, 0x22, 0x24, 0x87};
+	CANMessage message = makeCan(0x7E1, 8, data);
   carloop.can().transmit(message);
 }
 
 void requestSOC() {
-	CANMessage message;
-  // A CAN message to request the vehicle speed
-  message.id = 0x7E0;
-  message.len = 8;
-
-  // Data is an OBD request: get current value of the vehicle speed PID
-  message.data[0] = 0x03; // 2 byte request
-  message.data[1] = 0x22;
-	message.data[2] = 0x00;
-	message.data[3] = 0x5B;
-  // Send the message on the bus!
+	uint8_t data[8] = {0x03, 0x22, 0x00, 0x5B};
+	CANMessage message = makeCan(0x7E0, 8, data);
   carloop.can().transmit(message);
 }
 
 void requestChargerVolt() {
-	CANMessage message;
-  // A CAN message to request the vehicle speed
-  message.id = 0x7E4;
-  message.len = 8;
-
-  // Data is an OBD request: get current value of the vehicle speed PID
-  message.data[0] = 0x03; // 2 byte request
-  message.data[1] = 0x22;
-	message.data[2] = 0x43;
-	message.data[3] = 0x68;
-  // Send the message on the bus!
+	uint8_t data[8] = {0x03, 0x22, 0x43, 0x68};
+	CANMessage message = makeCan(0x7E4, 8, data);
   carloop.can().transmit(message);
 }
 
 void requestChargerCurrent() {
-	CANMessage message;
-  // A CAN message to request the vehicle speed
-  message.id = 0x7E4;
-  message.len = 8;
-
-  // Data is an OBD request: get current value of the vehicle speed PID
-  message.data[0] = 0x03; // 2 byte request
-  message.data[1] = 0x22;
-	message.data[2] = 0x43;
-	message.data[3] = 0x69;
-  // Send the message on the bus!
+	uint8_t data[8] = {0x03, 0x22, 0x43, 0x69};
+	CANMessage message = makeCan(0x7E4, 8, data);
   carloop.can().transmit(message);
 }
 
