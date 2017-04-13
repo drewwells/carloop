@@ -629,7 +629,7 @@ void loop() {
 										 "\"fuel_tank\":%f,"
 										 "\"amps_in\":%f,"
 										 "\"volts_in\":%f,"
-										 "\"power_in\":$f,"
+										 "\"power_in\":%f,"
 										 "\"soc\":%f,"
 										 "\"ev_miles_cycle\":%f"
 										 "}",
