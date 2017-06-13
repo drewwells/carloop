@@ -1,17 +1,5 @@
-#define BLYNK_PRINT Serial // Defines the object that is used for printing
-//#define BLYNK_DEBUG        // Optional, this enables more detailed prints
-
 SYSTEM_MODE(AUTOMATIC);
 SYSTEM_THREAD(ENABLED);
-
-/*
- * Copyright 2016 Emerson Garland
- * Free to modify, share and do whatever, just give me credit if you like it!
- * This code will publish chosen obdii compliant messages to blynk for data visualization.
- */
-
-// This #include statement was automatically added by the Particle IDE.
-#include <blynk.h>
 
 // This #include statement was automatically added by the Particle IDE.
 #include <carloop.h>
@@ -36,10 +24,6 @@ void receiveObdRequestVIN();
 void sendObdRequestVIN();
 void requestChargerCurrent();
 void waitForChargerCurrentResponse();
-
-//PLACE YOUR BLYNK AUTHENTICATION KEY IN BELOW AS SHOWN IN EXAMPLE BELOW:
-//char auth[] = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
-char server[] = "45.55.96.146";
 
 String dumpMessage(const CANMessage &message);
 bool byteArray8Equal(uint8_t a1[8], uint8_t a2[8]);
@@ -505,7 +489,6 @@ struct Payload makePayload(int vpin, const char* partKey, float data) {
 void pushValue(int vpin, const char* key, float data) {
 	String sData = String(data);
 	Particle.publish(key, sData);
-	Blynk.virtualWrite(vpin, data);
 	String msg = String(key);
 	msg.concat(String(" "));
 	msg.concat(sData);
@@ -518,7 +501,6 @@ uint8_t lastMessageData[8];
 char* unmatched;
 
 void publishValues() {
-	Blynk.run();
 	if (AMBIENT_AIR_TEMPERATURE != NAN) {
 		pushValue(V0, "TEMP", AMBIENT_AIR_TEMPERATURE);
 		GCP.AMBIENT_AIR_TEMPERATURE = AMBIENT_AIR_TEMPERATURE;
@@ -580,7 +562,6 @@ void publishValues() {
 
 	if (unmatched[0] != '\0') {
 		Particle.publish("UNK", String(unmatched));
-		Blynk.virtualWrite(V50, unmatched);
 		*unmatched = '\0';
 	}
 }
@@ -594,7 +575,6 @@ void setup() {
 	Serial.begin(115200);
 	carloop.begin();
 	transitionTime = millis();
-	Blynk.begin(auth, server);
 }
 
 
@@ -620,7 +600,6 @@ void loop() {
 
 	// Only heartbeat every 30seconds
 	if (millis() - lastCheck > CHECK_TO) {
-		Blynk.virtualWrite(V49, "up");
 		lastCheck = millis();
 		String car = String::format("{"
 										 "\"vehicle_speed\":%f,"
@@ -671,8 +650,6 @@ bool publishGPSLocation() {
 	Particle.publish("GPS", "isvalid, pulling info");
 	float flat = carloop.gps().location.lat();
 	float flng = carloop.gps().location.lng();
-
-	Blynk.virtualWrite(V50, "lat", flat, "lng", flng);
 
 	char buf[40];
 	sprintf(buf, "lat: %f lng: %f", flat, flng);
@@ -953,7 +930,6 @@ char* fmtString(String str) {
 void printString(const char* fmt, String str) {
 	char *cstr = new char[str.length() + 1];
 	strcpy(cstr, str.c_str());
-	BLYNK_LOG(fmt, cstr);
 	delete [] cstr;
 }
 
