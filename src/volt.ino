@@ -486,7 +486,7 @@ struct Payload makePayload(int vpin, const char* partKey, float data) {
 	return *p;
 }
 
-void pushValue(int vpin, const char* key, float data) {
+void pushValue(const char* key, float data) {
 	String sData = String(data);
 	Particle.publish(key, sData);
 	String msg = String(key);
@@ -502,7 +502,7 @@ char* unmatched;
 
 void publishValues() {
 	if (AMBIENT_AIR_TEMPERATURE != NAN) {
-		pushValue(V0, "TEMP", AMBIENT_AIR_TEMPERATURE);
+		pushValue("TEMP", AMBIENT_AIR_TEMPERATURE);
 		GCP.AMBIENT_AIR_TEMPERATURE = AMBIENT_AIR_TEMPERATURE;
 	}
 
@@ -517,7 +517,7 @@ void publishValues() {
 	}
 
 	if (EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE != NAN) {
-		pushValue(V3, "HYBRID_SOC", EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE);
+		pushValue("HYBRID_SOC", EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE);
 		// Battery is reporting as 0... a lot. DO not report these values
 		if (EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE > 0) {
 			GCP.EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE = EXTENDED_HYBRID_BATTERY_PACK_REMAINING_LIFE;
@@ -525,38 +525,38 @@ void publishValues() {
  	}
 
 	if (CHARGER_VOLTS_IN != NAN) {
-		pushValue(V4, "CHARGER_VOLTS_IN", CHARGER_VOLTS_IN);
+		pushValue("CHARGER_VOLTS_IN", CHARGER_VOLTS_IN);
 		GCP.CHARGER_VOLTS_IN = CHARGER_VOLTS_IN;
  	}
 
 	if (CHARGER_AMPS_IN != NAN) {
-		pushValue(V5, "CHARGER_AMPS_IN", CHARGER_AMPS_IN);
+		pushValue("CHARGER_AMPS_IN", CHARGER_AMPS_IN);
 		GCP.CHARGER_AMPS_IN = CHARGER_AMPS_IN;
  	}
 
 	if (HV_DISCHARGE_AMPS != NAN) {
-		pushValue(V6, "HV_DISCHARGE_AMPS", HV_DISCHARGE_AMPS);
+		pushValue("HV_DISCHARGE_AMPS", HV_DISCHARGE_AMPS);
 		GCP.HV_DISCHARGE_AMPS = HV_DISCHARGE_AMPS;
  	}
 
 	if (HV_VOLTS != NAN) {
-		pushValue(V7, "HV_VOLTS", HV_VOLTS);
+		pushValue("HV_VOLTS", HV_VOLTS);
 		GCP.HV_VOLTS = HV_VOLTS;
  	}
 
 	if (CHARGER_POWER != NAN) {
-		pushValue(V7, "CHARGER_POWER", CHARGER_POWER);
+		pushValue("CHARGER_POWER", CHARGER_POWER);
 		GCP.CHARGER_POWER = CHARGER_POWER;
  	}
 
 	if (EV_MILES_THIS_CYCLE != NAN) {
-		pushValue(V8, "EV_MILES_THIS_CYCLE", EV_MILES_THIS_CYCLE);
+		pushValue("EV_MILES_THIS_CYCLE", EV_MILES_THIS_CYCLE);
 		GCP.EV_MILES_THIS_CYCLE = EV_MILES_THIS_CYCLE;
  	}
 
 	// random stats
 	if (VEHICLE_SPEED != NAN) {
-		pushValue(V20, "VEHICLE_SPEED", VEHICLE_SPEED);
+		pushValue("VEHICLE_SPEED", VEHICLE_SPEED);
 		GCP.VEHICLE_SPEED = VEHICLE_SPEED;
  	}
 
