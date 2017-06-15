@@ -582,7 +582,7 @@ void setup() {
 
 
 unsigned long lastCheck = 0;
-const auto CHECK_TO = 30 * 1000;
+const auto CHECK_TO = 60 * 1000;
 void loop() {
 
 	carloop.update();
@@ -641,7 +641,7 @@ void loop() {
 	}
 
 	// cooldown, let the car catchup
-	delay(5*1000);
+	delay(30*1000);
 	resetValues();
 }
 
